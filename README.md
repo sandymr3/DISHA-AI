@@ -6,6 +6,18 @@ I've built a **professional, production-ready DISHA AI frontend** with a sophist
 
 ## What's Built
 
+### Screenshots
+
+The following images are included in this folder and can be viewed directly from the README:
+
+![Screenshot 1](Screenshot%202026-05-03%20195846.jpg)
+![Screenshot 2](Screenshot%202026-05-03%20200105.jpg)
+![Screenshot 3](Screenshot%202026-05-03%20200158.jpg)
+![Screenshot 4](Screenshot%202026-05-03%20200223.jpg)
+![Screenshot 5](Screenshot%202026-05-03%20200311.jpg)
+![Screenshot 6](Screenshot%202026-05-03%20200339.jpg)
+![Screenshot 7](Screenshot%202026-05-03%20200356.jpg)
+
 ### Core Pages (6 Main Routes)
 1. **Landing Page** (`/`) - Hero section with feature showcase
 2. **ECP Calculator** (`/calculator`) - 8-question assessment with animated gauge
@@ -134,6 +146,7 @@ I've built a **professional, production-ready DISHA AI frontend** with a sophist
 ## Deployment
 
 Ready to deploy to Vercel:
+- Live demo: [disha-ai-nwua.vercel.app](https://disha-ai-nwua.vercel.app/)
 - All optimized for edge deployment
 - Environment variables configured
 - No backend dependencies required for core features
