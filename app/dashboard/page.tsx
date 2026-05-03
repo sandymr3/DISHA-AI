@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -93,13 +93,6 @@ function DashboardContent() {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm text-white/40 hidden md:block">Hi, {displayName}</span>
-            <Button
-              size="icon"
-              onClick={() => setShowChat(!showChat)}
-              className={`${showChat ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'} transition-all`}
-            >
-              {showChat ? <X className="w-4 h-4" /> : <MessageCircle className="w-4 h-4" />}
-            </Button>
             {/* User menu */}
             <div className="relative">
               <button
@@ -140,7 +133,7 @@ function DashboardContent() {
 
       <div className="flex">
         {/* Main Content */}
-        <main className={`flex-1 transition-all duration-300 ${showChat ? 'mr-0 lg:mr-[380px]' : ''}`}>
+        <main className="flex-1 transition-all duration-300">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <Tabs defaultValue={defaultTab} className="w-full">
               <TabsList className="grid w-full grid-cols-7 mb-8 bg-white/[0.03] border border-white/[0.06] h-auto p-1 rounded-xl">
@@ -277,16 +270,33 @@ function DashboardContent() {
           </div>
         </main>
 
-        {/* Chat Sidebar */}
-        {showChat && (
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="fixed right-0 top-[57px] bottom-0 w-full lg:w-[380px] z-30 bg-black border-l border-white/[0.06]"
+        {/* Floating Chat and Toggle Button */}
+        <AnimatePresence>
+          {showChat && (
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              className="fixed right-6 bottom-24 w-[350px] sm:w-[380px] h-[500px] sm:h-[600px] z-50 shadow-2xl rounded-2xl overflow-hidden"
+            >
+              <AIMentorChat onClose={() => setShowChat(false)} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="fixed right-6 bottom-6 z-50">
+          <Button
+            size="lg"
+            onClick={() => setShowChat(!showChat)}
+            className="rounded-full shadow-2xl bg-white text-black hover:bg-white/90 gap-2 h-14 px-6 font-semibold"
           >
-            <AIMentorChat onClose={() => setShowChat(false)} />
-          </motion.div>
-        )}
+            {showChat ? (
+              <><X className="w-5 h-5" /> Close Chat</>
+            ) : (
+              <><MessageCircle className="w-5 h-5" /> Ask questions ?</>
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   )
