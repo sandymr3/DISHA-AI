@@ -32,6 +32,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!auth) {
+      // Firebase not initialized (env vars absent during build) — skip auth listener
+      setLoading(false);
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
@@ -46,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshToken = useCallback(async (): Promise<string | null> => {
-    if (!auth.currentUser) return null;
+    if (!auth || !auth.currentUser) return null;
     const token = await auth.currentUser.getIdToken(/* forceRefresh */ true);
     setIdToken(token);
     return token;

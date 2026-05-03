@@ -11,10 +11,15 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
-// Prevent re-initialization in Next.js hot-reload
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+// Only initialize Firebase when the API key is present.
+// This prevents crashes during Next.js build-time prerendering (SSR/SSG)
+// when NEXT_PUBLIC_* env vars are not yet embedded in the bundle.
+const app = process.env.NEXT_PUBLIC_FIREBASE_API_KEY
+  ? (getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0])
+  : null;
 
-export const auth = getAuth(app);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const auth = app ? getAuth(app) : (null as any);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 

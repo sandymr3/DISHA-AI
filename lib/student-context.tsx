@@ -45,6 +45,10 @@ export function StudentProvider({ children }: { children: ReactNode }) {
     }
 
     // Then sync with backend when Firebase auth resolves
+    if (!auth) {
+      setIsReady(true);
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setIsReady(false);
