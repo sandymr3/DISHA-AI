@@ -58,18 +58,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithEmail = useCallback(async (email: string, password: string) => {
+    if (!auth) throw new Error('Firebase is not initialized');
     await signInWithEmailAndPassword(auth, email, password);
   }, []);
 
   const signUpWithEmail = useCallback(async (email: string, password: string) => {
+    if (!auth) throw new Error('Firebase is not initialized');
     await createUserWithEmailAndPassword(auth, email, password);
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
+    if (!auth || !googleProvider) throw new Error('Firebase is not initialized');
     await signInWithPopup(auth, googleProvider);
   }, []);
 
   const signOut = useCallback(async () => {
+    if (!auth) throw new Error('Firebase is not initialized');
     await firebaseSignOut(auth);
     setIdToken(null);
   }, []);
