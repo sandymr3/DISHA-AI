@@ -12,20 +12,19 @@ const firebaseConfig = {
 };
 
 // Only initialize Firebase when the API key is present.
-// This prevents crashes during Next.js build-time prerendering (SSR/SSG)
-// when NEXT_PUBLIC_* env vars are not yet embedded in the bundle.
+// The API key is checked as a proxy for all Firebase env vars being configured —
+// if it is missing (e.g. during Next.js build-time prerendering), all other
+// NEXT_PUBLIC_FIREBASE_* vars will also be absent, so we skip initialization
+// entirely to prevent auth/invalid-api-key crashes at build time.
 const app: FirebaseApp | null = process.env.NEXT_PUBLIC_FIREBASE_API_KEY
   ? (getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0])
   : null;
 
 export const auth: Auth | null = app ? getAuth(app) : null;
 
-export const googleProvider: GoogleAuthProvider | null = app
-  ? (() => {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' });
-      return provider;
-    })()
-  : null;
+export const googleProvider: GoogleAuthProvider | null = app ? new GoogleAuthProvider() : null;
+if (googleProvider) {
+  googleProvider.setCustomParameters({ prompt: 'select_account' });
+}
 
 export default app;
