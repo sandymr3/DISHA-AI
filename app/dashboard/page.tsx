@@ -14,11 +14,12 @@ import { ROISimulator } from '@/components/roi-simulator'
 import { FundingPassport } from '@/components/funding-passport'
 import { DreamGap } from '@/components/dream-gap'
 import { ECPSimulator } from '@/components/ecp-simulator'
+import { UniversityDatabase } from '@/components/university-database'
 import { DynamicSearchBar } from '@/components/search-bar'
 import { useStudent } from '@/lib/student-context'
 import { matchUniversities, getLoanOffers } from '@/lib/api'
 import type { MatchedUniversity, LoanOffer } from '@/lib/types'
-import { GraduationCap, DollarSign, TrendingUp, MessageCircle, X, Sparkles, Download, Target, SlidersHorizontal } from 'lucide-react'
+import { GraduationCap, DollarSign, TrendingUp, MessageCircle, X, Sparkles, Download, Target, SlidersHorizontal, Database } from 'lucide-react'
 
 function DashboardContent() {
   const router = useRouter()
@@ -90,9 +91,10 @@ function DashboardContent() {
         <main className={`flex-1 transition-all duration-300 ${showChat ? 'mr-0 lg:mr-[380px]' : ''}`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <Tabs defaultValue={defaultTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-6 mb-8 bg-white/[0.03] border border-white/[0.06] h-auto p-1 rounded-xl">
+              <TabsList className="grid w-full grid-cols-7 mb-8 bg-white/[0.03] border border-white/[0.06] h-auto p-1 rounded-xl">
                 {[
                   { value: 'universities', icon: GraduationCap, label: 'Universities' },
+                  { value: 'database', icon: Database, label: 'Database' },
                   { value: 'loans', icon: DollarSign, label: 'Loans' },
                   { value: 'roi', icon: TrendingUp, label: 'ROI' },
                   { value: 'passport', icon: Download, label: 'Passport' },
@@ -166,6 +168,11 @@ function DashboardContent() {
                     </Card>
                   </motion.div>
                 )}
+              </TabsContent>
+
+              {/* Database Tab */}
+              <TabsContent value="database">
+                <UniversityDatabase />
               </TabsContent>
 
               {/* Loans Tab */}

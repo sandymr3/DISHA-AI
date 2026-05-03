@@ -53,6 +53,10 @@ export async function getUniversity(universityId: string) {
   return fetchJSON<MatchedUniversity>(`${API_BASE}/universities/${universityId}`);
 }
 
+export async function getAllUniversities() {
+  return fetchJSON<MatchedUniversity[]>(`${API_BASE}/universities`);
+}
+
 export async function getLoanOffers(studentId: string) {
   return fetchJSON<{ offers: LoanOffer[]; unlocked: boolean; ecpScore: number }>(`${API_BASE}/loans/offers?studentId=${studentId}`);
 }
