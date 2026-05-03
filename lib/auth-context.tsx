@@ -32,6 +32,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!auth) {
+      // Firebase not initialized (env vars absent during build) — skip auth listener
+      setLoading(false);
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
@@ -46,25 +51,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshToken = useCallback(async (): Promise<string | null> => {
-    if (!auth.currentUser) return null;
+    if (!auth || !auth.currentUser) return null;
     const token = await auth.currentUser.getIdToken(/* forceRefresh */ true);
     setIdToken(token);
     return token;
   }, []);
 
   const signInWithEmail = useCallback(async (email: string, password: string) => {
+    if (!auth) throw new Error('Firebase is not initialized');
     await signInWithEmailAndPassword(auth, email, password);
   }, []);
 
   const signUpWithEmail = useCallback(async (email: string, password: string) => {
+    if (!auth) throw new Error('Firebase is not initialized');
     await createUserWithEmailAndPassword(auth, email, password);
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
+    if (!auth || !googleProvider) throw new Error('Firebase is not initialized');
     await signInWithPopup(auth, googleProvider);
   }, []);
 
   const signOut = useCallback(async () => {
+    if (!auth) throw new Error('Firebase is not initialized');
     await firebaseSignOut(auth);
     setIdToken(null);
   }, []);

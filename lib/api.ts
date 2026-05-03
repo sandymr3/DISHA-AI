@@ -11,7 +11,7 @@ const API_BASE = '/api/v1';
 
 /** Returns Authorization header with fresh Firebase ID token, or empty object if not signed in. */
 async function getAuthHeaders(): Promise<Record<string, string>> {
-  const user = auth.currentUser;
+  const user = auth?.currentUser;
   if (!user) return {};
   const token = await user.getIdToken();
   return { Authorization: `Bearer ${token}` };
