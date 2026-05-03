@@ -34,7 +34,7 @@ export default function LandingPage() {
   const { studentId } = useStudent()
 
   const handlePrimary = () => {
-    if (user) {
+    if (user || studentId) {
       router.push(studentId ? '/dashboard' : '/calculator')
     } else {
       router.push('/auth')
@@ -59,7 +59,7 @@ export default function LandingPage() {
             DISHA AI
           </motion.div>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="flex items-center gap-2">
-            {!loading && !user && (
+            {!loading && !user && !studentId && (
               <Button
                 size="sm"
                 variant="ghost"
@@ -74,7 +74,7 @@ export default function LandingPage() {
               onClick={handlePrimary}
               className="bg-white text-black hover:bg-white/90 text-xs font-semibold gap-1.5"
             >
-              {loading ? '...' : user ? (studentId ? 'Dashboard' : 'Get ECP Score') : 'Get Started'}
+              {loading ? '...' : (user || studentId) ? (studentId ? 'Dashboard' : 'Get ECP Score') : 'Get Started'}
               <ArrowRight className="w-3 h-3" />
             </Button>
           </motion.div>
@@ -113,7 +113,7 @@ export default function LandingPage() {
               onClick={handlePrimary}
               className="bg-white text-black hover:bg-white/90 font-semibold gap-2 h-14 px-8 text-base group"
             >
-              {user ? 'Go to Dashboard' : 'Get My ECP Score'}
+              {(user || studentId) ? 'Go to Dashboard' : 'Get My ECP Score'}
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Button>
             <Button
@@ -235,7 +235,7 @@ export default function LandingPage() {
             onClick={handlePrimary}
             className="bg-white text-black hover:bg-white/90 font-semibold gap-2 h-14 px-10 text-base group"
           >
-            {user ? 'Go to Dashboard' : 'Start My ECP Assessment'}
+            {(user || studentId) ? 'Go to Dashboard' : 'Start My ECP Assessment'}
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Button>
         </motion.div>

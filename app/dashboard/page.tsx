@@ -117,7 +117,7 @@ function DashboardContent() {
                 <div className="absolute right-0 top-10 w-48 bg-black border border-white/[0.1] rounded-xl shadow-2xl z-50 overflow-hidden">
                   <div className="px-3 py-2.5 border-b border-white/[0.06]">
                     <p className="text-xs font-medium text-white truncate">{displayName}</p>
-                    <p className="text-[11px] text-white/30 truncate">{user?.email}</p>
+                    <p className="text-[11px] text-white/30 truncate">{user?.email || 'Demo Account'}</p>
                   </div>
                   <button
                     onClick={() => { setShowUserMenu(false); router.push('/calculator') }}
