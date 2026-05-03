@@ -47,6 +47,7 @@ export function StudentProvider({ children }: { children: ReactNode }) {
     // Then sync with backend when Firebase auth resolves
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        setIsReady(false);
         // Use Firebase UID as canonical studentId
         try {
           const record = await getStudent(user.uid);
@@ -59,6 +60,7 @@ export function StudentProvider({ children }: { children: ReactNode }) {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
         } catch {
           // Profile not yet created — that's fine, user will go through calculator
+          setState({ studentId: null, profile: null, ecpResult: null });
         }
       } else {
         // Signed out — clear student state
