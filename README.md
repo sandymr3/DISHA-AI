@@ -7,6 +7,8 @@
 
 # DISHA AI Frontend - Complete Application
 
+you can access our go backend repository at: https://github.com/sandymr3/DISHA_AI_go
+
 ## Project Summary
 
 I've built a **professional, production-ready DISHA AI frontend** with a sophisticated black theme, smooth animations, and comprehensive features for international student education counseling.
