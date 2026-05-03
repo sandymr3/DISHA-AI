@@ -14,6 +14,7 @@ import { ROISimulator } from '@/components/roi-simulator'
 import { FundingPassport } from '@/components/funding-passport'
 import { DreamGap } from '@/components/dream-gap'
 import { ECPSimulator } from '@/components/ecp-simulator'
+import { DynamicSearchBar } from '@/components/search-bar'
 import { useStudent } from '@/lib/student-context'
 import { matchUniversities, getLoanOffers } from '@/lib/api'
 import type { MatchedUniversity, LoanOffer } from '@/lib/types'
@@ -107,13 +108,25 @@ function DashboardContent() {
 
               {/* Universities Tab */}
               <TabsContent value="universities" className="space-y-6">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-2">
                   <div>
                     <h2 className="text-xl font-bold">Matched Universities</h2>
                     <p className="text-sm text-white/40">Ranked by funding fit, ROI, and admission probability</p>
                   </div>
                   <span className="text-xs text-white/30 font-mono">{safeUniversities.length} matches</span>
                 </div>
+
+                <div className="pb-4">
+                  <DynamicSearchBar onSelect={(uni) => {
+                    // Prepend new generated university to top of the list if it doesn't exist
+                    setUniversities(prev => {
+                      if (prev.find(u => u.id === uni.id)) return prev;
+                      return [uni, ...prev];
+                    });
+                    setSelectedUni(uni);
+                  }} />
+                </div>
+
                 {loading ? (
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {Array.from({ length: 6 }).map((_, i) => (

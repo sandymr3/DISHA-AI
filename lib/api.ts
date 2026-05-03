@@ -123,3 +123,23 @@ export async function getApplication(applicationId: string): Promise<LoanApplica
 export async function healthCheck() {
   return fetchJSON<{ status: string; version: string }>(`${API_BASE}/health`);
 }
+
+// ─── Dynamic Search & Ingestion ────────────────────────────────────────
+
+export interface AutocompleteResult {
+  id: string;
+  name: string;
+  country: string;
+  source: 'db' | 'web';
+}
+
+export async function autocompleteSearch(query: string): Promise<AutocompleteResult[]> {
+  return fetchJSON(`${API_BASE}/search/autocomplete?q=${encodeURIComponent(query)}`);
+}
+
+export async function ingestEntity(entityName: string, entityType: 'university' | 'loan'): Promise<any> {
+  return fetchJSON(`${API_BASE}/ingest`, {
+    method: 'POST',
+    body: JSON.stringify({ entityName, entityType }),
+  });
+}
