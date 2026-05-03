@@ -1,3 +1,10 @@
+
+
+
+
+
+
+
 # DISHA AI Frontend - Complete Application
 
 ## Project Summary
@@ -9,14 +16,26 @@ I've built a **professional, production-ready DISHA AI frontend** with a sophist
 ### Screenshots
 
 The following images are included in this folder and can be viewed directly from the README:
+### ECP Dashboard
+<img width="1918" height="870" alt="Screenshot 2026-05-03 200356" src="https://github.com/user-attachments/assets/f38f5f39-aff8-4153-91f4-8a22f92f8985" />
 
-![Screenshot 1](Screenshot%202026-05-03%20195846.jpg)
-![Screenshot 2](Screenshot%202026-05-03%20200105.jpg)
-![Screenshot 3](Screenshot%202026-05-03%20200158.jpg)
-![Screenshot 4](Screenshot%202026-05-03%20200223.jpg)
-![Screenshot 5](Screenshot%202026-05-03%20200311.jpg)
-![Screenshot 6](Screenshot%202026-05-03%20200339.jpg)
-![Screenshot 7](Screenshot%202026-05-03%20200356.jpg)
+### University Matching
+<img width="1918" height="866" alt="Screenshot 2026-05-03 200339" src="https://github.com/user-attachments/assets/459aad2e-36c8-4525-884d-f0b99343ee93" />
+
+### Loan Marketplace
+<img width="1918" height="865" alt="Screenshot 2026-05-03 200311" src="https://github.com/user-attachments/assets/1838a390-b29a-42c8-8038-746ff0296b55" />
+
+### ROI Simulator
+<img width="1917" height="862" alt="Screenshot 2026-05-03 200223" src="https://github.com/user-attachments/assets/167f5551-19f0-45aa-94cf-d486eb3bdfd1" />
+
+### Funding Passport
+<img width="1918" height="867" alt="Screenshot 2026-05-03 200158" src="https://github.com/user-attachments/assets/021dfac1-b7f5-44ca-8d65-7947de7847b6" />
+
+### Dream Gap Analyzer
+<img width="1918" height="863" alt="Screenshot 2026-05-03 200105" src="https://github.com/user-attachments/assets/e3e1c45a-758b-4954-ad3f-e2666a9bb21a" />
+
+### ECP Score Simulator
+<img width="1918" height="867" alt="Screenshot 2026-05-03 195846" src="https://github.com/user-attachments/assets/cebfa9c8-8350-4131-8c17-7a38b0394a1f" />
 
 ### Core Pages (6 Main Routes)
 1. **Landing Page** (`/`) - Hero section with feature showcase
@@ -152,4 +171,4 @@ Ready to deploy to Vercel:
 - No backend dependencies required for core features
 - Scales automatically with Vercel
 
-The application is **complete, professional, and ready for demo or production deployment**. It showcases advanced UI patterns, smooth interactions, and intelligent feature architecture perfect for a hackathon presentation.
+The application is **complete, professional, and ready for demo or production deployment**. It showcases advanced UI patterns, smooth interactions, and intelligent feature architecture.
