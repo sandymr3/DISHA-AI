@@ -2,216 +2,230 @@
 
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Zap, Gauge, University, TrendingUp } from 'lucide-react'
+import { ArrowRight, Gauge, GraduationCap, DollarSign, TrendingUp, MessageCircle, Download } from 'lucide-react'
 import { motion } from 'framer-motion'
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 30 },
+  visible: (i: number) => ({ opacity: 1, y: 0, transition: { duration: 0.7, delay: i * 0.12, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] } }),
+}
+
+const STATS = [
+  { value: '13.3L+', label: 'Indian Students Abroad' },
+  { value: '30%', label: 'Annual Loan Growth' },
+  { value: '₹54L', label: 'Avg. Education Cost' },
+  { value: '3 min', label: 'ECP Score Time' },
+]
+
+const FEATURES = [
+  { icon: Gauge, title: 'ECP Score', desc: 'Your fundability metric — know what you can borrow before you pick a university' },
+  { icon: GraduationCap, title: 'Smart Matching', desc: 'Universities ranked by funding fit, ROI, and admission probability — not just rankings' },
+  { icon: DollarSign, title: 'Loan Marketplace', desc: 'Unlock NBFC offers from Avanse, InCred, HDFC — rates personalized to your profile' },
+  { icon: TrendingUp, title: 'ROI Simulator', desc: '10-year projection showing exactly when your degree investment pays off' },
+  { icon: MessageCircle, title: 'AI Mentor', desc: 'Gemini-powered advisor that knows your ECP, funding band, and dream universities' },
+  { icon: Download, title: 'Funding Passport', desc: 'Shareable card with your financial identity — Spotify Wrapped for education finance' },
+]
 
 export default function LandingPage() {
   const router = useRouter()
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2,
-      },
-    },
-  }
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.8 },
-    },
-  }
-
-  const features = [
-    {
-      icon: Gauge,
-      title: 'ECP Calculator',
-      description: 'Calculate your Education Career Profile with precision using AI-powered assessment',
-    },
-    {
-      icon: University,
-      title: 'University Matching',
-      description: 'Get matched with universities aligned to your profile and aspirations',
-    },
-    {
-      icon: Zap,
-      title: 'AI Mentor',
-      description: 'Chat with our AI-powered mentor for personalized guidance and insights',
-    },
-    {
-      icon: TrendingUp,
-      title: 'ROI Simulator',
-      description: '10-year financial projection to understand your investment returns',
-    },
-  ]
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/10 overflow-hidden">
-      {/* Background gradient effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-40 left-0 w-96 h-96 bg-secondary/10 rounded-full blur-3xl"></div>
+    <div className="min-h-screen bg-black overflow-hidden relative">
+      {/* Noise overlay */}
+      <div className="noise-overlay fixed inset-0 pointer-events-none" />
+
+      {/* Subtle gradient orbs */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-[-200px] left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-white/[0.015] blur-[150px]" />
+        <div className="absolute bottom-[-300px] right-[-200px] w-[600px] h-[600px] rounded-full bg-white/[0.01] blur-[120px]" />
       </div>
 
       {/* Header */}
-      <header className="relative z-10 backdrop-blur-sm border-b border-border/50">
+      <header className="relative z-10 border-b border-white/[0.04]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"
-          >
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="text-xl font-bold text-gradient-white tracking-tight">
             DISHA AI
           </motion.div>
-          <motion.nav
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="hidden md:flex gap-8"
-          >
-            <a href="/features" className="text-foreground/70 hover:text-foreground transition">
-              Features
-            </a>
-            <a href="#howitworks" className="text-foreground/70 hover:text-foreground transition">
-              How It Works
-            </a>
-          </motion.nav>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
+            <Button
+              size="sm"
+              onClick={() => router.push('/calculator')}
+              className="bg-white text-black hover:bg-white/90 text-xs font-semibold gap-1.5"
+            >
+              Get My ECP Score <ArrowRight className="w-3 h-3" />
+            </Button>
+          </motion.div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <motion.section
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32"
-      >
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          <motion.div variants={itemVariants} className="space-y-6">
-            <h1 className="text-5xl md:text-6xl font-bold leading-tight text-balance">
-              Your Path to{' '}
-              <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                Global Education
-              </span>
-            </h1>
-            <p className="text-xl text-foreground/70 leading-relaxed text-balance">
-              DISHA AI uses advanced algorithms to assess your profile, match you with ideal universities, and guide your international education journey with AI-powered mentorship.
-            </p>
-            <div className="flex gap-4 pt-4">
-              <Button
-                size="lg"
-                onClick={() => router.push('/calculator')}
-                className="bg-primary hover:bg-primary/90 text-white gap-2 group"
-              >
-                Get Started
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-primary/30 hover:border-primary/50 hover:bg-primary/5"
-              >
-                Learn More
-              </Button>
-            </div>
-          </motion.div>
-
-          {/* Hero Illustration */}
-          <motion.div
-            variants={itemVariants}
-            className="relative h-96 md:h-full flex items-center justify-center"
+      {/* Hero */}
+      <section className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-20 md:pt-36 md:pb-28">
+        <div className="text-center">
+          <motion.p
+            custom={0} variants={fadeUp} initial="hidden" animate="visible"
+            className="text-xs uppercase tracking-[0.4em] text-white/30 mb-6"
           >
-            <div className="relative w-full h-full max-w-md">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary to-secondary rounded-2xl opacity-20 blur-3xl"></div>
-              <div className="relative bg-card border border-border rounded-2xl p-8 space-y-4">
-                <div className="h-4 bg-primary/20 rounded w-3/4"></div>
-                <div className="h-4 bg-secondary/20 rounded w-1/2"></div>
-                <div className="space-y-3 pt-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="flex gap-2">
-                      <div className="w-8 h-8 rounded bg-primary/10"></div>
-                      <div className="flex-1 space-y-2">
-                        <div className="h-2 bg-muted rounded w-full"></div>
-                        <div className="h-2 bg-muted/50 rounded w-4/5"></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            Fund First. Dream Second.
+          </motion.p>
+          <motion.h1
+            custom={1} variants={fadeUp} initial="hidden" animate="visible"
+            className="text-4xl sm:text-5xl md:text-7xl font-bold leading-[1.1] tracking-tight mb-6"
+          >
+            Know What You Can
+            <br />
+            <span className="text-gradient-white">Borrow</span> in 3 Minutes.
+            <br />
+            <span className="text-white/40">Then Pick Your University.</span>
+          </motion.h1>
+          <motion.p
+            custom={2} variants={fadeUp} initial="hidden" animate="visible"
+            className="text-base md:text-lg text-white/40 max-w-2xl mx-auto mb-10 leading-relaxed"
+          >
+            DISHA uses your CGPA, family income, and loan readiness to calculate your
+            Education Credit Profile — then matches you with universities you can actually afford.
+          </motion.p>
+          <motion.div custom={3} variants={fadeUp} initial="hidden" animate="visible" className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button
+              size="lg"
+              onClick={() => router.push('/calculator')}
+              className="bg-white text-black hover:bg-white/90 font-semibold gap-2 h-14 px-8 text-base group"
+            >
+              Get My ECP Score
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+              className="border-white/10 hover:border-white/25 text-white h-14 px-8 text-base hover:bg-white/5"
+            >
+              See How It Works
+            </Button>
           </motion.div>
         </div>
-      </motion.section>
+      </section>
 
-      {/* Features Section */}
-      <motion.section
-        id="features"
-        variants={containerVariants}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true }}
-        className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20"
-      >
-        <motion.div variants={itemVariants} className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">Powerful Features</h2>
-          <p className="text-foreground/70 max-w-2xl mx-auto text-lg">
-            Everything you need to succeed in your international education journey
+      {/* Stats bar */}
+      <section className="relative z-10 border-y border-white/[0.04]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-0 md:divide-x md:divide-white/[0.06]">
+            {STATS.map((stat, i) => (
+              <motion.div
+                key={stat.label}
+                custom={i} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}
+                className="text-center md:px-8"
+              >
+                <p className="text-2xl md:text-3xl font-bold text-gradient-white">{stat.value}</p>
+                <p className="text-xs text-white/30 mt-1">{stat.label}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* The Problem */}
+      <section className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
+        <motion.div
+          custom={0} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}
+          className="text-center mb-16"
+        >
+          <p className="text-xs uppercase tracking-[0.3em] text-white/20 mb-3">The Problem</p>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Students pick universities first.
+            <br />
+            <span className="text-white/30">Then scramble for loans they can&apos;t get.</span>
+          </h2>
+          <p className="text-white/40 max-w-xl mx-auto">
+            67% of education loan rejections happen because students apply to programs
+            outside their financial band. DISHA flips the process — fund first, dream second.
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {features.map((feature, index) => (
+        {/* Before / After */}
+        <div className="grid md:grid-cols-2 gap-6">
+          <motion.div custom={1} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}
+            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6"
+          >
+            <p className="text-xs text-red-400/60 uppercase tracking-wider mb-4">Without DISHA</p>
+            <div className="space-y-3">
+              {['Research 50+ universities randomly', 'Apply for loans blindly', 'Get rejected — wasted ₹5K+ in fees', 'Start over with lower dreams'].map((step, i) => (
+                <div key={i} className="flex items-center gap-3 text-sm text-white/40">
+                  <span className="w-6 h-6 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center text-xs shrink-0">{i + 1}</span>
+                  {step}
+                </div>
+              ))}
+            </div>
+          </motion.div>
+          <motion.div custom={2} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}
+            className="bg-white/[0.02] border border-white/[0.08] rounded-2xl p-6 glow-white-sm"
+          >
+            <p className="text-xs text-green-400/60 uppercase tracking-wider mb-4">With DISHA</p>
+            <div className="space-y-3">
+              {['3-min ECP assessment → Know your funding band', 'AI matches universities within your band', 'Unlock personalized loan offers from NBFCs', 'Apply with confidence — 90%+ approval rate'].map((step, i) => (
+                <div key={i} className="flex items-center gap-3 text-sm text-white/70">
+                  <span className="w-6 h-6 rounded-full bg-green-500/10 text-green-400 flex items-center justify-center text-xs shrink-0">✓</span>
+                  {step}
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section id="features" className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
+        <motion.div custom={0} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-16">
+          <p className="text-xs uppercase tracking-[0.3em] text-white/20 mb-3">Platform</p>
+          <h2 className="text-3xl md:text-4xl font-bold">Everything in One Place</h2>
+        </motion.div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {FEATURES.map((feature, i) => (
             <motion.div
-              key={index}
-              variants={itemVariants}
-              className="group bg-card border border-border/50 hover:border-primary/30 rounded-xl p-6 transition-all hover:shadow-xl hover:shadow-primary/10"
+              key={feature.title}
+              custom={i} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}
+              className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-6 group hover:border-white/15 transition-all duration-300 hover:bg-white/[0.03]"
             >
-              <feature.icon className="w-12 h-12 text-primary mb-4 group-hover:scale-110 transition-transform" />
-              <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-              <p className="text-foreground/60 text-sm">{feature.description}</p>
+              <feature.icon className="w-8 h-8 text-white/20 mb-4 group-hover:text-white/50 transition-colors" />
+              <h3 className="font-bold mb-1">{feature.title}</h3>
+              <p className="text-sm text-white/40 leading-relaxed">{feature.desc}</p>
             </motion.div>
           ))}
         </div>
-      </motion.section>
+      </section>
 
-      {/* CTA Section */}
-      <motion.section
-        variants={containerVariants}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true }}
-        className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20"
-      >
+      {/* CTA */}
+      <section className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
         <motion.div
-          variants={itemVariants}
-          className="bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/30 rounded-2xl p-12 text-center"
+          custom={0} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}
+          className="text-center bg-white/[0.02] border border-white/[0.08] rounded-2xl p-12 md:p-16 relative overflow-hidden"
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Transform Your Education Path?</h2>
-          <p className="text-foreground/70 mb-8 text-lg">
-            Calculate your ECP score and discover universities that match your profile
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Ready to Know Your<br /><span className="text-gradient-white">Real Financial Standing?</span>
+          </h2>
+          <p className="text-white/40 mb-8 max-w-lg mx-auto">
+            8 questions. 3 minutes. Your entire education funding picture — clear as day.
           </p>
           <Button
             size="lg"
             onClick={() => router.push('/calculator')}
-            className="bg-primary hover:bg-primary/90 text-white gap-2 group"
+            className="bg-white text-black hover:bg-white/90 font-semibold gap-2 h-14 px-10 text-base group"
           >
-            Start ECP Calculator
+            Start My ECP Assessment
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Button>
         </motion.div>
-      </motion.section>
+      </section>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-border/50 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center text-foreground/50 text-sm">
-          <p>&copy; 2024 DISHA AI. All rights reserved.</p>
+      <footer className="relative z-10 border-t border-white/[0.04]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <p className="text-xs text-white/20">© 2026 DISHA AI — TensorX. All rights reserved.</p>
+          <div className="flex gap-6 text-xs text-white/20">
+            <a href="#features" className="hover:text-white/50 transition-colors">Features</a>
+            <a href="/calculator" className="hover:text-white/50 transition-colors">Calculator</a>
+          </div>
         </div>
       </footer>
     </div>

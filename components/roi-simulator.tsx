@@ -4,265 +4,109 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { calculateROIProjection } from '@/lib/ecp-calculator'
-import { TrendingUp } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
+import { useStudent } from '@/lib/student-context'
+import { calculateROI } from '@/lib/api'
+import type { MatchedUniversity, ROIResult } from '@/lib/types'
+import { TrendingUp, Loader2 } from 'lucide-react'
 
 interface ROISimulatorProps {
-  loanAmount?: number
-  interestRate?: number
-  tenure?: number
+  universities?: MatchedUniversity[]
 }
 
-export function ROISimulator({ loanAmount = 300000, interestRate = 8.9, tenure = 15 }: ROISimulatorProps) {
-  const [inputs, setInputs] = useState({
-    loanAmount,
-    interestRate,
-    tenure,
-    startingSalary: 60000,
-    growthRate: 8,
-  })
+export function ROISimulator({ universities = [] }: ROISimulatorProps) {
+  const { studentId } = useStudent()
+  const [selectedUniId, setSelectedUniId] = useState('')
+  const [result, setResult] = useState<ROIResult | null>(null)
+  const [loading, setLoading] = useState(false)
 
-  const [projections, setProjections] = useState<any[]>([])
-  const [showResults, setShowResults] = useState(false)
-
-  const handleInputChange = (field: string, value: string) => {
-    setInputs((prev) => ({
-      ...prev,
-      [field]: parseFloat(value) || 0,
-    }))
+  const handleCalculate = async () => {
+    if (!studentId || !selectedUniId) return
+    setLoading(true)
+    try {
+      const res = await calculateROI({ studentId, universityId: selectedUniId })
+      setResult(res)
+    } catch { /* ignore */ }
+    setLoading(false)
   }
 
-  const handleCalculate = () => {
-    const data = calculateROIProjection(
-      inputs.loanAmount,
-      inputs.interestRate,
-      inputs.tenure,
-      inputs.startingSalary,
-      inputs.growthRate / 100
-    )
-    setProjections(data)
-    setShowResults(true)
-  }
-
-  const chartData = projections.map((proj) => ({
-    year: proj.year,
-    salary: Math.round(proj.salary / 1000),
-    emiRatio: proj.emiToIncomeRatio,
-    totalLoanPaid: Math.round(proj.totalLoanPaid / 1000),
-  }))
-
-  const finalProjection = projections[projections.length - 1]
+  const selectedUni = universities.find(u => u.id === selectedUniId)
 
   return (
     <div className="space-y-6">
-      {/* Input Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Card className="bg-card border border-border p-6">
-          <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-primary" />
-            ROI Simulator - 10 Year Projection
-          </h3>
+      <div>
+        <h2 className="text-xl font-bold mb-1">ROI Simulator</h2>
+        <p className="text-sm text-white/40">10-year financial projection: Is this degree worth it?</p>
+      </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-            <div>
-              <Label htmlFor="loanAmount" className="text-sm font-medium mb-2 block">
-                Loan Amount ($)
-              </Label>
-              <Input
-                id="loanAmount"
-                type="number"
-                value={inputs.loanAmount}
-                onChange={(e) => handleInputChange('loanAmount', e.target.value)}
-                className="bg-input border-border/50"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="interestRate" className="text-sm font-medium mb-2 block">
-                Interest Rate (%)
-              </Label>
-              <Input
-                id="interestRate"
-                type="number"
-                step="0.1"
-                value={inputs.interestRate}
-                onChange={(e) => handleInputChange('interestRate', e.target.value)}
-                className="bg-input border-border/50"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="tenure" className="text-sm font-medium mb-2 block">
-                Tenure (Years)
-              </Label>
-              <Input
-                id="tenure"
-                type="number"
-                value={inputs.tenure}
-                onChange={(e) => handleInputChange('tenure', e.target.value)}
-                className="bg-input border-border/50"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="startingSalary" className="text-sm font-medium mb-2 block">
-                Starting Salary ($)
-              </Label>
-              <Input
-                id="startingSalary"
-                type="number"
-                value={inputs.startingSalary}
-                onChange={(e) => handleInputChange('startingSalary', e.target.value)}
-                className="bg-input border-border/50"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="growthRate" className="text-sm font-medium mb-2 block">
-                Growth Rate (%)
-              </Label>
-              <Input
-                id="growthRate"
-                type="number"
-                step="0.5"
-                value={inputs.growthRate}
-                onChange={(e) => handleInputChange('growthRate', e.target.value)}
-                className="bg-input border-border/50"
-              />
-            </div>
-          </div>
-
-          <Button onClick={handleCalculate} className="w-full bg-primary hover:bg-primary/90">
-            Calculate 10-Year Projection
+      <Card className="bg-black border border-white/[0.08] p-6">
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <Select value={selectedUniId} onValueChange={setSelectedUniId}>
+            <SelectTrigger className="flex-1 bg-white/[0.03] border-white/[0.08] text-white">
+              <SelectValue placeholder="Select a university" />
+            </SelectTrigger>
+            <SelectContent className="bg-black border-white/10">
+              {universities.map(u => (
+                <SelectItem key={u.id} value={u.id} className="text-white hover:bg-white/10">
+                  {u.name} — {u.programName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={handleCalculate} disabled={!selectedUniId || loading} className="bg-white text-black hover:bg-white/90 gap-2">
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <TrendingUp className="w-4 h-4" />}
+            Calculate ROI
           </Button>
-        </Card>
-      </motion.div>
+        </div>
 
-      {/* Results Section */}
-      {showResults && projections.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="space-y-6"
-        >
-          {/* Chart */}
-          <Card className="bg-card border border-border p-6">
-            <h4 className="font-semibold mb-4">10-Year Financial Projection</h4>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                <XAxis dataKey="year" stroke="rgba(255,255,255,0.5)" />
-                <YAxis stroke="rgba(255,255,255,0.5)" yAxisId="left" />
-                <YAxis stroke="rgba(255,255,255,0.5)" yAxisId="right" orientation="right" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#131829',
-                    border: '1px solid rgba(99, 102, 241, 0.3)',
-                    borderRadius: '8px',
-                  }}
-                />
-                <Legend />
-                <Line
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="salary"
-                  stroke="#6366f1"
-                  name="Annual Salary (k$)"
-                  strokeWidth={2}
-                  dot={false}
-                />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="emiRatio"
-                  stroke="#8b5cf6"
-                  name="EMI/Income Ratio (%)"
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </Card>
-
-          {/* Summary Stats */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="bg-card border border-border/50 p-4">
-              <p className="text-foreground/60 text-sm mb-1">Starting Salary</p>
-              <p className="text-2xl font-bold text-primary">${inputs.startingSalary.toLocaleString()}</p>
-            </Card>
-
-            <Card className="bg-card border border-border/50 p-4">
-              <p className="text-foreground/60 text-sm mb-1">Year 10 Salary</p>
-              <p className="text-2xl font-bold text-secondary">
-                ${finalProjection?.salary?.toLocaleString()}
-              </p>
-            </Card>
-
-            <Card className="bg-card border border-border/50 p-4">
-              <p className="text-foreground/60 text-sm mb-1">Total Loan Paid</p>
-              <p className="text-2xl font-bold text-accent">
-                ${finalProjection?.totalLoanPaid?.toLocaleString()}
-              </p>
-            </Card>
-
-            <Card className="bg-card border border-border/50 p-4">
-              <p className="text-foreground/60 text-sm mb-1">Avg EMI/Income</p>
-              <p className={`text-2xl font-bold ${
-                projections.reduce((avg, p) => avg + p.emiToIncomeRatio, 0) / projections.length > 30
-                  ? 'text-red-400'
-                  : 'text-green-400'
-              }`}>
-                {(projections.reduce((avg, p) => avg + p.emiToIncomeRatio, 0) / projections.length).toFixed(1)}%
-              </p>
-            </Card>
-          </div>
-
-          {/* Detailed Table */}
-          <Card className="bg-card border border-border overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border/30 bg-muted/20">
-                    <th className="px-4 py-3 text-left font-semibold">Year</th>
-                    <th className="px-4 py-3 text-left font-semibold">Salary</th>
-                    <th className="px-4 py-3 text-left font-semibold">Monthly EMI</th>
-                    <th className="px-4 py-3 text-left font-semibold">Total Paid</th>
-                    <th className="px-4 py-3 text-left font-semibold">EMI Ratio</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {projections.map((proj, idx) => (
-                    <tr
-                      key={idx}
-                      className={`border-b border-border/20 hover:bg-muted/10 transition ${
-                        idx % 2 === 0 ? 'bg-muted/5' : ''
-                      }`}
-                    >
-                      <td className="px-4 py-3">{proj.year}</td>
-                      <td className="px-4 py-3">${proj.salary.toLocaleString()}</td>
-                      <td className="px-4 py-3">${proj.monthlyEMI.toLocaleString()}</td>
-                      <td className="px-4 py-3">${proj.totalLoanPaid.toLocaleString()}</td>
-                      <td className={`px-4 py-3 font-semibold ${
-                        proj.emiToIncomeRatio > 30 ? 'text-red-400' : 'text-green-400'
-                      }`}>
-                        {proj.emiToIncomeRatio.toFixed(1)}%
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {result && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+            {/* Chart */}
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={result.data}>
+                  <defs>
+                    <linearGradient id="withDegree" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ffffff" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#ffffff" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="withoutDegree" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#666666" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#666666" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="year" stroke="rgba(255,255,255,0.2)" tick={{ fontSize: 11 }} label={{ value: 'Year', position: 'insideBottom', offset: -5, fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} />
+                  <YAxis stroke="rgba(255,255,255,0.2)" tick={{ fontSize: 11 }} label={{ value: 'Cumulative (₹L)', angle: -90, position: 'insideLeft', fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} />
+                  <Tooltip contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '12px' }} labelStyle={{ color: 'rgba(255,255,255,0.5)' }} />
+                  {result.breakEvenYear && (
+                    <ReferenceLine x={result.breakEvenYear} stroke="rgba(255,255,255,0.3)" strokeDasharray="4 4" label={{ value: `Break-even Yr ${result.breakEvenYear}`, position: 'top', fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} />
+                  )}
+                  <Area type="monotone" dataKey="withoutDegree" stroke="#555" fill="url(#withoutDegree)" strokeWidth={2} name="Without Degree" />
+                  <Area type="monotone" dataKey="withDegree" stroke="#fff" fill="url(#withDegree)" strokeWidth={2} name="With Degree" />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
-          </Card>
-        </motion.div>
-      )}
+
+            {/* Summary */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-white/[0.03] rounded-lg p-4 text-center">
+                <p className="text-[10px] text-white/30 mb-1">Break-Even Year</p>
+                <p className="text-2xl font-bold">{result.breakEvenYear ?? '—'}</p>
+              </div>
+              <div className="bg-white/[0.03] rounded-lg p-4 text-center">
+                <p className="text-[10px] text-white/30 mb-1">10-Year Net Gain</p>
+                <p className={`text-2xl font-bold ${result.tenYearGain > 0 ? 'text-green-400' : 'text-red-400'}`}>₹{result.tenYearGain}L</p>
+              </div>
+              <div className="bg-white/[0.03] rounded-lg p-4 text-center">
+                <p className="text-[10px] text-white/30 mb-1">University</p>
+                <p className="text-sm font-semibold truncate">{selectedUni?.name || '—'}</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </Card>
     </div>
   )
 }

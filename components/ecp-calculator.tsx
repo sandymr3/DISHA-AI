@@ -1,260 +1,387 @@
 'use client'
 
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Slider } from '@/components/ui/slider'
-import { ECPFormData, ECPResult } from '@/lib/types'
-import { getECPResult } from '@/lib/ecp-calculator'
-import { ECP_QUESTIONS } from '@/lib/data'
-import AnimatedGauge from './animated-gauge'
-import { ChevronLeft, ChevronRight, Zap } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { useRouter } from 'next/navigation'
+import { useStudent } from '@/lib/student-context'
+import { createStudent } from '@/lib/api'
+import type { StudentProfile, IncomeBand, Country, ProgramType, IntakePeriod } from '@/lib/types'
+import { ChevronLeft, ChevronRight, Zap, Loader2, Globe, GraduationCap, DollarSign, Users, Calendar } from 'lucide-react'
 
-interface ECPCalculatorProps {
-  onComplete?: (result: ECPResult, formData: ECPFormData) => void
-}
+const COUNTRIES: { value: Country; label: string; flag: string }[] = [
+  { value: 'USA', label: 'United States', flag: '🇺🇸' },
+  { value: 'UK', label: 'United Kingdom', flag: '🇬🇧' },
+  { value: 'Canada', label: 'Canada', flag: '🇨🇦' },
+  { value: 'Germany', label: 'Germany', flag: '🇩🇪' },
+  { value: 'Australia', label: 'Australia', flag: '🇦🇺' },
+  { value: 'India', label: 'India', flag: '🇮🇳' },
+]
 
-export function ECPCalculator({ onComplete }: ECPCalculatorProps) {
-  const [currentStep, setCurrentStep] = useState(0)
-  const [formData, setFormData] = useState<ECPFormData>({
-    q1: 5,
-    q2: 50,
-    q3: 0,
-    q4: 0,
-    q5: 0,
-    q6: 0,
-    q7: 60,
-    q8: 0,
-  })
-  const [result, setResult] = useState<ECPResult | null>(null)
-  const [isComplete, setIsComplete] = useState(false)
+const PROGRAMS: { value: ProgramType; label: string }[] = [
+  { value: 'MS', label: 'MS (Master of Science)' },
+  { value: 'MBA', label: 'MBA' },
+  { value: 'MiM', label: 'MiM (Master in Management)' },
+  { value: 'PhD', label: 'PhD' },
+  { value: 'MArch', label: 'MArch (Architecture)' },
+  { value: 'MPH', label: 'MPH (Public Health)' },
+]
 
-  const handleSliderChange = (value: number[]) => {
-    const key = `q${(currentStep + 1) as keyof ECPFormData}`
-    setFormData((prev) => ({
-      ...prev,
-      [key]: value[0],
-    }))
+const INCOME_BANDS: { value: IncomeBand; label: string }[] = [
+  { value: '<3L', label: 'Below ₹3 Lakhs' },
+  { value: '3-8L', label: '₹3L – ₹8L' },
+  { value: '8-20L', label: '₹8L – ₹20L' },
+  { value: '20L+', label: 'Above ₹20L' },
+]
+
+const INTAKES: { value: IntakePeriod; label: string }[] = [
+  { value: 'Jan2026', label: 'January 2026' },
+  { value: 'Sep2026', label: 'September 2026' },
+  { value: 'Jan2027', label: 'January 2027' },
+]
+
+const STEPS = [
+  { id: 'name', title: "What's your name?", subtitle: 'We personalize everything for you', icon: Users },
+  { id: 'country', title: 'Which country are you targeting?', subtitle: 'Select your dream destination', icon: Globe },
+  { id: 'program', title: 'What program type?', subtitle: 'Choose your target program', icon: GraduationCap },
+  { id: 'cgpa', title: "What's your current CGPA?", subtitle: 'On a scale of 4.0 to 10.0', icon: GraduationCap },
+  { id: 'gre', title: 'Have you taken the GRE?', subtitle: 'Score helps improve your ECP', icon: GraduationCap },
+  { id: 'income', title: "What's your family's annual income?", subtitle: 'This determines your funding band', icon: DollarSign },
+  { id: 'coapplicant', title: 'Do you have a co-applicant?', subtitle: 'A co-applicant can boost your ECP by 12+ points', icon: Users },
+  { id: 'intake', title: 'When is your target intake?', subtitle: 'Earlier intakes score higher on readiness', icon: Calendar },
+]
+
+export function ECPCalculator() {
+  const router = useRouter()
+  const { setStudent } = useStudent()
+  const [step, setStep] = useState(0)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const [name, setName] = useState('')
+  const [country, setCountry] = useState<Country | ''>('')
+  const [program, setProgram] = useState<ProgramType | ''>('')
+  const [cgpa, setCgpa] = useState(7.5)
+  const [hasTakenGRE, setHasTakenGRE] = useState<boolean | null>(null)
+  const [greScore, setGreScore] = useState(310)
+  const [income, setIncome] = useState<IncomeBand | ''>('')
+  const [hasCoApplicant, setHasCoApplicant] = useState<boolean | null>(null)
+  const [coApplicantIncome, setCoApplicantIncome] = useState<IncomeBand | ''>('')
+  const [intake, setIntake] = useState<IntakePeriod | ''>('')
+
+  const progress = ((step + 1) / STEPS.length) * 100
+
+  const canProceed = (): boolean => {
+    switch (step) {
+      case 0: return name.trim().length >= 2
+      case 1: return country !== ''
+      case 2: return program !== ''
+      case 3: return cgpa >= 4.0 && cgpa <= 10.0
+      case 4: return hasTakenGRE !== null
+      case 5: return income !== ''
+      case 6: return hasCoApplicant !== null && (!hasCoApplicant || coApplicantIncome !== '')
+      case 7: return intake !== ''
+      default: return false
+    }
+  }
+
+  const handleSubmit = async () => {
+    if (!canProceed()) return
+    setIsSubmitting(true)
+    setError(null)
+
+    const profile: StudentProfile = {
+      name: name.trim(),
+      cgpa,
+      greScore: hasTakenGRE ? greScore : 0,
+      familyIncome: income as IncomeBand,
+      hasCoApplicant: hasCoApplicant || false,
+      coApplicantIncome: hasCoApplicant ? (coApplicantIncome as IncomeBand) : undefined,
+      targetCountry: country as Country,
+      targetProgram: program as ProgramType,
+      intake: intake as IntakePeriod,
+    }
+
+    try {
+      const result = await createStudent(profile)
+      setStudent(result.studentId, profile, result.ecpResult)
+      router.push('/score')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to calculate ECP score')
+      setIsSubmitting(false)
+    }
   }
 
   const handleNext = () => {
-    if (currentStep < ECP_QUESTIONS.length - 1) {
-      setCurrentStep(currentStep + 1)
+    if (step < STEPS.length - 1) {
+      setStep(step + 1)
     } else {
-      // Calculate result
-      const ecpResult = getECPResult(formData)
-      setResult(ecpResult)
-      setIsComplete(true)
-      onComplete?.(ecpResult, formData)
+      handleSubmit()
     }
   }
 
-  const handlePrev = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1)
-    }
-  }
-
-  const currentQuestion = ECP_QUESTIONS[currentStep]
-  const currentValue = formData[`q${(currentStep + 1) as keyof ECPFormData}`]
-  const progress = ((currentStep + 1) / ECP_QUESTIONS.length) * 100
-
-  if (isComplete && result) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-2xl mx-auto"
-      >
-        <Card className="bg-card border border-border p-8 md:p-12 text-center">
-          <motion.h2
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-3xl font-bold mb-8"
-          >
-            Your ECP Score
-          </motion.h2>
-
-          <div className="my-12">
-            <AnimatedGauge score={result.score} maxScore={100} />
+  const renderStep = () => {
+    switch (step) {
+      case 0:
+        return (
+          <div className="space-y-4">
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter your first name"
+              className="bg-black border-white/10 text-white text-lg h-14 focus:border-white/40 placeholder:text-white/30"
+              autoFocus
+              onKeyDown={(e) => e.key === 'Enter' && canProceed() && handleNext()}
+            />
           </div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 2.2 }}
-            className="space-y-6"
-          >
-            <div className="bg-primary/10 border border-primary/20 rounded-lg p-6">
-              <h3 className="text-lg font-semibold mb-2 text-primary">Profile Band: {result.band}</h3>
-              <p className="text-foreground/70">{result.recommendation}</p>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4 pt-4">
-              <div className="bg-muted/30 rounded-lg p-4">
-                <p className="text-sm text-foreground/60 mb-1">Score</p>
-                <p className="text-2xl font-bold text-primary">{result.score}</p>
-              </div>
-              <div className="bg-muted/30 rounded-lg p-4">
-                <p className="text-sm text-foreground/60 mb-1">Profile</p>
-                <p className="text-2xl font-bold text-secondary">{result.band}</p>
-              </div>
-              <div className="bg-muted/30 rounded-lg p-4">
-                <p className="text-sm text-foreground/60 mb-1">Status</p>
-                <p className="text-2xl font-bold text-accent">Complete</p>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3 pt-4">
-              <Button
-                size="lg"
-                onClick={() => {
-                  setIsComplete(false)
-                  setCurrentStep(0)
-                }}
-                className="bg-primary hover:bg-primary/90"
+        )
+      case 1:
+        return (
+          <div className="grid grid-cols-2 gap-3">
+            {COUNTRIES.map((c) => (
+              <button
+                key={c.value}
+                onClick={() => setCountry(c.value)}
+                className={`p-4 rounded-xl border text-left transition-all ${
+                  country === c.value
+                    ? 'border-white bg-white/10 glow-white-sm'
+                    : 'border-white/10 hover:border-white/25 hover:bg-white/5'
+                }`}
               >
-                Retake Assessment
-              </Button>
-              <Button
-                size="lg"
-                onClick={() => window.location.href = '/dashboard'}
-                className="bg-secondary hover:bg-secondary/90 text-white"
+                <span className="text-2xl">{c.flag}</span>
+                <p className="text-sm mt-2 font-medium">{c.label}</p>
+              </button>
+            ))}
+          </div>
+        )
+      case 2:
+        return (
+          <div className="grid grid-cols-2 gap-3">
+            {PROGRAMS.map((p) => (
+              <button
+                key={p.value}
+                onClick={() => setProgram(p.value)}
+                className={`p-4 rounded-xl border text-left transition-all ${
+                  program === p.value
+                    ? 'border-white bg-white/10 glow-white-sm'
+                    : 'border-white/10 hover:border-white/25 hover:bg-white/5'
+                }`}
               >
-                View Matching Universities
-              </Button>
+                <p className="text-sm font-medium">{p.label}</p>
+              </button>
+            ))}
+          </div>
+        )
+      case 3:
+        return (
+          <div className="space-y-8 py-4">
+            <div className="text-center">
+              <span className="text-6xl font-bold text-gradient-white">{cgpa.toFixed(1)}</span>
+              <p className="text-white/40 text-sm mt-2">out of 10.0</p>
             </div>
-          </motion.div>
-        </Card>
-      </motion.div>
-    )
+            <Slider
+              value={[cgpa]}
+              onValueChange={([v]) => setCgpa(Math.round(v * 10) / 10)}
+              min={4.0}
+              max={10.0}
+              step={0.1}
+              className="w-full"
+            />
+            <div className="flex justify-between text-xs text-white/40">
+              <span>4.0</span><span>10.0</span>
+            </div>
+          </div>
+        )
+      case 4:
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setHasTakenGRE(true)}
+                className={`p-5 rounded-xl border text-center transition-all ${
+                  hasTakenGRE === true ? 'border-white bg-white/10 glow-white-sm' : 'border-white/10 hover:border-white/25'
+                }`}
+              >
+                <p className="font-medium">Yes, I have</p>
+              </button>
+              <button
+                onClick={() => { setHasTakenGRE(false); setGreScore(0) }}
+                className={`p-5 rounded-xl border text-center transition-all ${
+                  hasTakenGRE === false ? 'border-white bg-white/10 glow-white-sm' : 'border-white/10 hover:border-white/25'
+                }`}
+              >
+                <p className="font-medium">Not yet</p>
+              </button>
+            </div>
+            {hasTakenGRE && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 pt-4">
+                <div className="text-center">
+                  <span className="text-5xl font-bold text-gradient-white">{greScore}</span>
+                  <p className="text-white/40 text-sm mt-1">GRE Score</p>
+                </div>
+                <Slider value={[greScore]} onValueChange={([v]) => setGreScore(Math.round(v))} min={260} max={340} step={1} />
+                <div className="flex justify-between text-xs text-white/40"><span>260</span><span>340</span></div>
+              </motion.div>
+            )}
+          </div>
+        )
+      case 5:
+        return (
+          <div className="space-y-3">
+            {INCOME_BANDS.map((band) => (
+              <button
+                key={band.value}
+                onClick={() => setIncome(band.value)}
+                className={`w-full p-4 rounded-xl border text-left transition-all ${
+                  income === band.value ? 'border-white bg-white/10 glow-white-sm' : 'border-white/10 hover:border-white/25'
+                }`}
+              >
+                <p className="font-medium">{band.label}</p>
+              </button>
+            ))}
+          </div>
+        )
+      case 6:
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setHasCoApplicant(true)}
+                className={`p-5 rounded-xl border text-center transition-all ${
+                  hasCoApplicant === true ? 'border-white bg-white/10 glow-white-sm' : 'border-white/10 hover:border-white/25'
+                }`}
+              >
+                <p className="font-medium">Yes</p>
+                <p className="text-xs text-white/40 mt-1">Parent / Sibling</p>
+              </button>
+              <button
+                onClick={() => { setHasCoApplicant(false); setCoApplicantIncome('') }}
+                className={`p-5 rounded-xl border text-center transition-all ${
+                  hasCoApplicant === false ? 'border-white bg-white/10 glow-white-sm' : 'border-white/10 hover:border-white/25'
+                }`}
+              >
+                <p className="font-medium">No</p>
+              </button>
+            </div>
+            {hasCoApplicant && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3 pt-2">
+                <p className="text-sm text-white/60">Co-applicant&apos;s annual income:</p>
+                {INCOME_BANDS.map((band) => (
+                  <button
+                    key={band.value}
+                    onClick={() => setCoApplicantIncome(band.value)}
+                    className={`w-full p-3 rounded-xl border text-left text-sm transition-all ${
+                      coApplicantIncome === band.value ? 'border-white bg-white/10' : 'border-white/10 hover:border-white/25'
+                    }`}
+                  >
+                    {band.label}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </div>
+        )
+      case 7:
+        return (
+          <div className="space-y-3">
+            {INTAKES.map((i) => (
+              <button
+                key={i.value}
+                onClick={() => setIntake(i.value)}
+                className={`w-full p-4 rounded-xl border text-left transition-all ${
+                  intake === i.value ? 'border-white bg-white/10 glow-white-sm' : 'border-white/10 hover:border-white/25'
+                }`}
+              >
+                <p className="font-medium">{i.label}</p>
+              </button>
+            ))}
+          </div>
+        )
+      default:
+        return null
+    }
   }
+
+  const StepIcon = STEPS[step].icon
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="max-w-2xl mx-auto"
-    >
-      <Card className="bg-card border border-border p-8 md:p-12">
-        {/* Progress bar */}
+    <div className="max-w-xl mx-auto">
+      <Card className="bg-black border border-white/10 p-6 md:p-10 relative overflow-hidden">
+        {/* Subtle top glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+
+        {/* Progress */}
         <div className="mb-8">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="font-semibold">Question {currentStep + 1} of {ECP_QUESTIONS.length}</h3>
-            <span className="text-sm text-foreground/60">{Math.round(progress)}%</span>
+          <div className="flex justify-between items-center mb-3">
+            <div className="flex items-center gap-2 text-white/60">
+              <StepIcon className="w-4 h-4" />
+              <span className="text-xs font-medium">Step {step + 1} of {STEPS.length}</span>
+            </div>
+            <span className="text-xs text-white/40 font-mono">{Math.round(progress)}%</span>
           </div>
-          <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+          <div className="w-full bg-white/5 rounded-full h-1 overflow-hidden">
             <motion.div
-              className="h-full bg-gradient-to-r from-primary to-secondary rounded-full"
+              className="h-full bg-white rounded-full"
               initial={{ width: '0%' }}
               animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
             />
           </div>
         </div>
 
         {/* Question */}
-        <motion.div
-          key={currentStep}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4 }}
-          className="space-y-8"
-        >
-          <div>
-            <h2 className="text-2xl md:text-3xl font-bold mb-2">{currentQuestion.question}</h2>
-            <p className="text-foreground/60">{currentQuestion.hint}</p>
-          </div>
-
-          {/* Slider */}
-          <div className="space-y-6 py-8">
-            <div className="bg-muted/20 rounded-lg p-6">
-              <Slider
-                value={[currentValue]}
-                onValueChange={handleSliderChange}
-                min={0}
-                max={currentQuestion.scale}
-                step={1}
-                className="w-full"
-              />
-              <div className="flex justify-between items-center mt-6">
-                <span className="text-sm text-foreground/60">0</span>
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ duration: 0.3 }}
-                  className="text-center"
-                >
-                  <p className="text-5xl font-bold text-primary">{currentValue}</p>
-                  <p className="text-xs text-foreground/60 mt-1">out of {currentQuestion.scale}</p>
-                </motion.div>
-                <span className="text-sm text-foreground/60">{currentQuestion.scale}</span>
-              </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -30 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            <div>
+              <h2 className="text-2xl md:text-3xl font-bold mb-1">{STEPS[step].title}</h2>
+              <p className="text-white/50 text-sm">{STEPS[step].subtitle}</p>
             </div>
+            <div className="min-h-[200px]">{renderStep()}</div>
+          </motion.div>
+        </AnimatePresence>
 
-            {/* Mini preview */}
-            <div className="grid grid-cols-8 gap-2 p-4 bg-muted/10 rounded-lg">
-              {Array.from({ length: 8 }).map((_, i) => {
-                const key = `q${(i + 1) as keyof ECPFormData}`
-                const value = formData[key]
-                const maxValue = ECP_QUESTIONS[i].scale
-                const isCurrent = i === currentStep
-
-                return (
-                  <motion.div
-                    key={i}
-                    className={`aspect-square rounded flex items-center justify-center text-xs font-bold transition-all ${
-                      isCurrent
-                        ? 'bg-primary text-white ring-2 ring-primary ring-offset-2 ring-offset-card'
-                        : 'bg-muted/30 text-foreground/60 hover:bg-muted/50'
-                    }`}
-                  >
-                    {Math.round((value / maxValue) * 10)}
-                  </motion.div>
-                )
-              })}
-            </div>
-          </div>
-        </motion.div>
+        {/* Error */}
+        {error && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            {error}
+          </motion.div>
+        )}
 
         {/* Navigation */}
-        <div className="flex gap-3 mt-8 pt-8 border-t border-border">
+        <div className="flex gap-3 mt-8 pt-6 border-t border-white/5">
           <Button
             variant="outline"
-            size="lg"
-            onClick={handlePrev}
-            disabled={currentStep === 0}
-            className="gap-2"
+            onClick={() => setStep(Math.max(0, step - 1))}
+            disabled={step === 0}
+            className="border-white/10 hover:border-white/25 hover:bg-white/5 text-white gap-1"
           >
-            <ChevronLeft className="w-4 h-4" />
-            Previous
-          </Button>
-          <Button variant="outline" size="lg" className="flex-1">
-            Save
+            <ChevronLeft className="w-4 h-4" /> Back
           </Button>
           <Button
-            size="lg"
             onClick={handleNext}
-            className="bg-primary hover:bg-primary/90 text-white gap-2 group"
+            disabled={!canProceed() || isSubmitting}
+            className="flex-1 bg-white text-black hover:bg-white/90 font-semibold gap-2"
           >
-            {currentStep === ECP_QUESTIONS.length - 1 ? (
-              <>
-                Calculate Score
-                <Zap className="w-4 h-4" />
-              </>
+            {isSubmitting ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Calculating...</>
+            ) : step === STEPS.length - 1 ? (
+              <><Zap className="w-4 h-4" /> Calculate My ECP Score</>
             ) : (
-              <>
-                Next
-                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </>
+              <>Next <ChevronRight className="w-4 h-4" /></>
             )}
           </Button>
         </div>
       </Card>
-    </motion.div>
+    </div>
   )
 }

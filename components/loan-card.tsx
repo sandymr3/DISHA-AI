@@ -3,119 +3,61 @@
 import { motion } from 'framer-motion'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { LoanOffer } from '@/lib/types'
-import { Lock, Unlock, TrendingUp, FileText } from 'lucide-react'
+import type { LoanOffer } from '@/lib/types'
+import { Clock, Shield, Zap } from 'lucide-react'
 
 interface LoanCardProps {
   loan: LoanOffer
-  isUnlocked: boolean
   index?: number
   onSelect?: () => void
 }
 
-export function LoanCard({ loan, isUnlocked, index = 0, onSelect }: LoanCardProps) {
+export function LoanCard({ loan, index = 0, onSelect }: LoanCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.1 }}
       onClick={onSelect}
-      className="h-full cursor-pointer"
+      className="cursor-pointer h-full"
     >
-      <Card className={`bg-card border p-6 h-full flex flex-col group relative overflow-hidden transition-all ${
-        isUnlocked
-          ? 'border-primary/50 hover:border-primary/80 hover:shadow-lg hover:shadow-primary/20'
-          : 'border-border/30 opacity-70 hover:opacity-85'
-      }`}>
-        {/* Lock overlay */}
-        {!isUnlocked && (
-          <div className="absolute inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-40 rounded">
-            <Lock className="w-8 h-8 text-foreground/40" />
-          </div>
-        )}
-
-        {/* Status badge */}
-        <div className="absolute top-4 right-4">
-          {isUnlocked ? (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 200 }}
-            >
-              <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                <Unlock className="w-3 h-3 mr-1" />
-                Unlocked
-              </Badge>
-            </motion.div>
-          ) : (
-            <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
-              <Lock className="w-3 h-3 mr-1" />
-              Locked
-            </Badge>
-          )}
-        </div>
+      <Card className="bg-black border border-white/[0.08] p-5 h-full flex flex-col group hover:border-white/20 transition-all duration-300 relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
         {/* Header */}
-        <div className="mb-6">
-          <h3 className="text-xl font-bold mb-2">{loan.provider}</h3>
-          <p className="text-sm text-foreground/60">Education Loan Provider</p>
-        </div>
-
-        {/* Stats grid */}
-        <div className="grid grid-cols-2 gap-3 mb-6 flex-1">
-          <div className="bg-muted/20 rounded-lg p-3">
-            <p className="text-xs text-foreground/60 mb-1">Interest Rate</p>
-            <p className="text-lg font-semibold text-primary">{loan.interestRate.toFixed(1)}%</p>
-          </div>
-          <div className="bg-muted/20 rounded-lg p-3">
-            <p className="text-xs text-foreground/60 mb-1">Tenure</p>
-            <p className="text-lg font-semibold">{loan.tenure} Years</p>
-          </div>
-          <div className="bg-muted/20 rounded-lg p-3">
-            <p className="text-xs text-foreground/60 mb-1">Loan Amount</p>
-            <p className="text-sm font-semibold">${loan.maxAmount.toLocaleString()}</p>
-          </div>
-          <div className="bg-muted/20 rounded-lg p-3">
-            <p className="text-xs text-foreground/60 mb-1">Processing Fee</p>
-            <p className="text-lg font-semibold">{loan.processingFee}%</p>
-          </div>
-        </div>
-
-        {/* Features */}
-        <div className="mb-6 space-y-2">
-          {loan.features.slice(0, 3).map((feature, i) => (
-            <div key={i} className="flex items-start gap-2 text-sm">
-              <span className="text-primary mt-1">•</span>
-              <span className="text-foreground/80">{feature}</span>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold" style={{ backgroundColor: loan.color + '20', color: loan.color }}>
+              {loan.logo}
             </div>
-          ))}
+            <div>
+              <h3 className="font-bold text-sm">{loan.lender}</h3>
+              <p className="text-[10px] text-white/30">{loan.usp}</p>
+            </div>
+          </div>
+          <Badge className={`${loan.collateralRequired ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-green-500/10 text-green-400 border-green-500/20'} text-[10px]`}>
+            {loan.collateralRequired ? 'Collateral' : 'No Collateral'}
+          </Badge>
         </div>
 
-        {/* CTA Button */}
-        <Button
-          onClick={(e) => {
-            e.stopPropagation()
-            onSelect?.()
-          }}
-          disabled={!isUnlocked}
-          className={`w-full gap-2 ${
-            isUnlocked ? 'bg-primary hover:bg-primary/90' : 'bg-muted/30 hover:bg-muted/40 cursor-not-allowed'
-          }`}
-        >
-          {isUnlocked ? (
-            <>
-              <FileText className="w-4 h-4" />
-              View Details
-            </>
-          ) : (
-            <>
-              <Lock className="w-4 h-4" />
-              Unlock at ECP ≥ {loan.ecpRequirement}
-            </>
-          )}
-        </Button>
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-2 mb-4 flex-1">
+          <div className="bg-white/[0.03] rounded-lg p-3">
+            <p className="text-[10px] text-white/30 mb-0.5">Interest Rate</p>
+            <p className="text-lg font-bold">{loan.interestRateMin}%<span className="text-xs text-white/30"> – {loan.interestRateMax}%</span></p>
+          </div>
+          <div className="bg-white/[0.03] rounded-lg p-3">
+            <p className="text-[10px] text-white/30 mb-0.5">Max Amount</p>
+            <p className="text-lg font-bold">₹{loan.maxAmountLakh}L</p>
+          </div>
+        </div>
+
+        {/* Details row */}
+        <div className="flex items-center gap-4 text-[11px] text-white/40 pt-3 border-t border-white/5">
+          <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{loan.processingDays}d processing</span>
+          <span className="flex items-center gap-1"><Shield className="w-3 h-3" />{loan.moratoriumMonths}mo moratorium</span>
+          <span className="flex items-center gap-1"><Zap className="w-3 h-3" />{loan.repaymentYears}yr repay</span>
+        </div>
       </Card>
     </motion.div>
   )

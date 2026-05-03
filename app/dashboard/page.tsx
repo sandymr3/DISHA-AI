@@ -1,229 +1,230 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { UniversityCard } from '@/components/university-card'
 import { AIMentorChat } from '@/components/ai-mentor-chat'
-import { ECPResult, ECPFormData, StudentProfile } from '@/lib/types'
-import { UNIVERSITIES } from '@/lib/data'
-import { filterUniversitiesByECP } from '@/lib/ecp-calculator'
-import { Filter, MessageCircle, X } from 'lucide-react'
+import { LoanCard } from '@/components/loan-card'
+import { EMICalculator } from '@/components/emi-calculator'
+import { ROISimulator } from '@/components/roi-simulator'
+import { FundingPassport } from '@/components/funding-passport'
+import { DreamGap } from '@/components/dream-gap'
+import { ECPSimulator } from '@/components/ecp-simulator'
+import { useStudent } from '@/lib/student-context'
+import { matchUniversities, getLoanOffers } from '@/lib/api'
+import type { MatchedUniversity, LoanOffer } from '@/lib/types'
+import { GraduationCap, DollarSign, TrendingUp, MessageCircle, X, Sparkles, Download, Target, SlidersHorizontal } from 'lucide-react'
 
-export default function DashboardPage() {
+function DashboardContent() {
   const router = useRouter()
-  const [ecpResult, setEcpResult] = useState<ECPResult | null>(null)
-  const [formData, setFormData] = useState<ECPFormData | null>(null)
-  const [filteredUniversities, setFilteredUniversities] = useState(UNIVERSITIES)
-  const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null)
+  const searchParams = useSearchParams()
+  const { studentId, profile, ecpResult } = useStudent()
+  const [universities, setUniversities] = useState<MatchedUniversity[]>([])
+  const [loanOffers, setLoanOffers] = useState<LoanOffer[]>([])
+  const [loansUnlocked, setLoansUnlocked] = useState(false)
   const [showChat, setShowChat] = useState(false)
-  const [fundingFilterEnabled, setFundingFilterEnabled] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [selectedUni, setSelectedUni] = useState<MatchedUniversity | null>(null)
+  const defaultTab = searchParams.get('tab') || 'universities'
 
-  // Load data from session storage
   useEffect(() => {
-    try {
-      const savedResult = sessionStorage.getItem('ecpResult')
-      const savedFormData = sessionStorage.getItem('formData')
+    if (!studentId) return
+    setLoading(true)
+    Promise.all([
+      matchUniversities(studentId).catch(() => []),
+      getLoanOffers(studentId).catch(() => ({ offers: [], unlocked: false, ecpScore: 0 })),
+    ]).then(([unis, loansData]) => {
+      setUniversities((unis as MatchedUniversity[]) || [])
+      const ld = loansData as { offers: LoanOffer[]; unlocked: boolean }
+      setLoanOffers(ld.offers || [])
+      setLoansUnlocked(ld.unlocked ?? (ecpResult?.score ?? 0) >= 60)
+      setLoading(false)
+    })
+  }, [studentId, ecpResult])
 
-      if (savedResult) {
-        const result = JSON.parse(savedResult)
-        setEcpResult(result)
-
-        // Filter universities by ECP score
-        const matched = filterUniversitiesByECP(UNIVERSITIES, result.score)
-        setFilteredUniversities(matched)
-
-        // Create student profile
-        const profile: StudentProfile = {
-          name: 'John Doe',
-          email: 'student@example.com',
-          cgpa: 3.5,
-          incomeLevel: 'Medium',
-          targetCountry: 'USA',
-          targetProgram: 'Computer Science',
-          ecpResult: result,
-        }
-        setStudentProfile(profile)
-      }
-
-      if (savedFormData) {
-        setFormData(JSON.parse(savedFormData))
-      }
-    } catch (error) {
-      console.error('[v0] Error loading data:', error)
-    }
-  }, [])
-
-  const handleFundingFilter = (enabled: boolean) => {
-    setFundingFilterEnabled(enabled)
-    if (ecpResult) {
-      let universities = filterUniversitiesByECP(UNIVERSITIES, ecpResult.score)
-      if (enabled) {
-        universities = universities.filter((uni) => uni.fundingAvailable !== 'Limited')
-      }
-      setFilteredUniversities(universities)
-    }
-  }
-
-  if (!ecpResult) {
+  if (!studentId || !ecpResult || !profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/10 flex items-center justify-center">
-        <Card className="bg-card border border-border p-8 text-center max-w-md">
-          <h2 className="text-2xl font-bold mb-4">No ECP Data</h2>
-          <p className="text-foreground/70 mb-6">Please complete the ECP calculator first.</p>
-          <Button onClick={() => router.push('/calculator')} className="bg-primary hover:bg-primary/90">
-            Go to Calculator
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <Card className="bg-black border border-white/10 p-8 text-center max-w-md">
+          <h2 className="text-2xl font-bold mb-3">Complete Your Assessment</h2>
+          <p className="text-white/50 mb-6 text-sm">Calculate your ECP score to unlock your personalized dashboard.</p>
+          <Button onClick={() => router.push('/calculator')} className="bg-white text-black hover:bg-white/90 font-semibold">
+            Get My ECP Score
           </Button>
         </Card>
       </div>
     )
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/10">
-      {/* Background effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-40 left-0 w-96 h-96 bg-secondary/5 rounded-full blur-3xl"></div>
-      </div>
+  const safeUniversities = universities || []
 
+  return (
+    <div className="min-h-screen bg-black">
       {/* Header */}
-      <header className="relative z-10 border-b border-border/50 backdrop-blur-sm sticky top-0">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold">Dashboard</h1>
-            <p className="text-foreground/60 text-sm">
-              Your ECP Score: <span className="text-primary font-semibold">{ecpResult.score}</span>
-            </p>
+      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-black/80 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <button onClick={() => router.push('/')} className="text-xl font-bold text-gradient-white">DISHA AI</button>
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08]">
+              <div className={`w-2 h-2 rounded-full ${ecpResult.tier === 'Green' ? 'bg-green-400' : ecpResult.tier === 'Amber' ? 'bg-amber-400' : 'bg-red-400'}`} />
+              <span className="text-xs font-mono text-white/60">ECP {ecpResult.score}</span>
+              <span className="text-[10px] text-white/30">₹{ecpResult.fundingBandLower}L–₹{ecpResult.fundingBandUpper}L</span>
+            </div>
           </div>
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              onClick={() => router.push('/calculator')}
-              className="border-primary/30 hover:border-primary/50"
-            >
-              Retake Test
-            </Button>
-            <Button
-              size="icon"
-              onClick={() => setShowChat(!showChat)}
-              className="bg-primary hover:bg-primary/90 relative"
-            >
-              {showChat ? <X className="w-5 h-5" /> : <MessageCircle className="w-5 h-5" />}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-white/40 hidden md:block">Hi, {profile.name.split(' ')[0]}</span>
+            <Button size="icon" onClick={() => setShowChat(!showChat)} className={`${showChat ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'} transition-all`}>
+              {showChat ? <X className="w-4 h-4" /> : <MessageCircle className="w-4 h-4" />}
             </Button>
           </div>
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Info section */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-12"
-        >
-          <Card className="bg-card border border-primary/20 p-6 bg-gradient-to-r from-primary/5 to-secondary/5">
-            <h2 className="text-2xl font-bold mb-2">Profile Assessment: {ecpResult.band}</h2>
-            <p className="text-foreground/70">{ecpResult.recommendation}</p>
-          </Card>
-        </motion.div>
+      <div className="flex">
+        {/* Main Content */}
+        <main className={`flex-1 transition-all duration-300 ${showChat ? 'mr-0 lg:mr-[380px]' : ''}`}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <Tabs defaultValue={defaultTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-6 mb-8 bg-white/[0.03] border border-white/[0.06] h-auto p-1 rounded-xl">
+                {[
+                  { value: 'universities', icon: GraduationCap, label: 'Universities' },
+                  { value: 'loans', icon: DollarSign, label: 'Loans' },
+                  { value: 'roi', icon: TrendingUp, label: 'ROI' },
+                  { value: 'passport', icon: Download, label: 'Passport' },
+                  { value: 'dreamgap', icon: Target, label: 'Dream Gap' },
+                  { value: 'simulator', icon: SlidersHorizontal, label: 'Simulator' },
+                ].map((tab) => (
+                  <TabsTrigger key={tab.value} value={tab.value} className="flex items-center gap-1.5 text-xs data-[state=active]:bg-white data-[state=active]:text-black py-2.5 rounded-lg">
+                    <tab.icon className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">{tab.label}</span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
 
-        {/* Filter section */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-8 flex gap-4 items-center flex-wrap"
-        >
-          <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5 text-foreground/60" />
-            <span className="font-semibold">Filters:</span>
+              {/* Universities Tab */}
+              <TabsContent value="universities" className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold">Matched Universities</h2>
+                    <p className="text-sm text-white/40">Ranked by funding fit, ROI, and admission probability</p>
+                  </div>
+                  <span className="text-xs text-white/30 font-mono">{safeUniversities.length} matches</span>
+                </div>
+                {loading ? (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} className="h-64 rounded-xl bg-white/[0.02] border border-white/[0.06] animate-pulse" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {safeUniversities.map((uni, i) => (
+                      <UniversityCard key={uni.id} university={uni} index={i} onClick={() => setSelectedUni(uni)} />
+                    ))}
+                  </div>
+                )}
+                {selectedUni && (
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                    <Card className="bg-black border border-white/10 p-6">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h3 className="text-lg font-bold">{selectedUni.name}</h3>
+                          <p className="text-sm text-white/40">{selectedUni.programName} · {selectedUni.country}</p>
+                        </div>
+                        <Button size="sm" variant="ghost" onClick={() => setSelectedUni(null)} className="text-white/40 hover:text-white"><X className="w-4 h-4" /></Button>
+                      </div>
+                      <div className="grid grid-cols-4 gap-3">
+                        {[
+                          { label: 'Total Cost', value: `₹${Math.round(selectedUni.totalCostINR / 100000)}L` },
+                          { label: 'Coverage', value: `${selectedUni.coveragePercent}%` },
+                          { label: 'ROI', value: `${selectedUni.roiYears} yrs` },
+                          { label: 'Post-Grad Salary', value: `$${selectedUni.postStudySalaryUSD?.toLocaleString()}` },
+                        ].map((s) => (
+                          <div key={s.label} className="bg-white/[0.03] rounded-lg p-3 text-center">
+                            <p className="text-[10px] text-white/30 mb-1">{s.label}</p>
+                            <p className="text-sm font-semibold">{s.value}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </Card>
+                  </motion.div>
+                )}
+              </TabsContent>
+
+              {/* Loans Tab */}
+              <TabsContent value="loans" className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-bold">Loan Marketplace</h2>
+                  <p className="text-sm text-white/40">
+                    {loansUnlocked ? `${loanOffers.length} offers unlocked for your profile` : 'Improve your ECP to 60+ to unlock loan offers'}
+                  </p>
+                </div>
+                {!loansUnlocked && (
+                  <Card className="bg-white/[0.02] border border-white/[0.08] p-8 text-center">
+                    <div className="text-4xl mb-3">🔒</div>
+                    <h3 className="text-lg font-bold mb-2">Loan Marketplace Locked</h3>
+                    <p className="text-sm text-white/40 mb-4">Your ECP score needs to be 60 or above to unlock loan offers.</p>
+                    <Button variant="outline" className="border-white/10 text-white" onClick={() => {}}>Improve My Score</Button>
+                  </Card>
+                )}
+                {loansUnlocked && (
+                  <>
+                    <div className="grid md:grid-cols-3 gap-4">
+                      {loanOffers.map((offer, i) => (
+                        <LoanCard key={offer.id} loan={offer} index={i} />
+                      ))}
+                    </div>
+                    <EMICalculator fundingBand={[ecpResult.fundingBandLower, ecpResult.fundingBandUpper]} />
+                  </>
+                )}
+              </TabsContent>
+
+              {/* ROI Tab */}
+              <TabsContent value="roi">
+                <ROISimulator universities={universities} />
+              </TabsContent>
+
+              {/* Passport Tab */}
+              <TabsContent value="passport">
+                <FundingPassport />
+              </TabsContent>
+
+              {/* Dream Gap Tab */}
+              <TabsContent value="dreamgap">
+                <DreamGap universities={universities} />
+              </TabsContent>
+
+              {/* Simulator Tab */}
+              <TabsContent value="simulator">
+                <ECPSimulator />
+              </TabsContent>
+            </Tabs>
           </div>
-          <Button
-            size="sm"
-            variant={fundingFilterEnabled ? 'default' : 'outline'}
-            onClick={() => handleFundingFilter(!fundingFilterEnabled)}
-            className={
-              fundingFilterEnabled ? 'bg-primary hover:bg-primary/90' : 'border-primary/30 hover:border-primary/50'
-            }
-          >
-            {fundingFilterEnabled ? '✓' : ''} Funding Available
-          </Button>
-          <span className="text-sm text-foreground/60 ml-auto">
-            Showing {filteredUniversities.length} universities
-          </span>
-        </motion.div>
+        </main>
 
-        {/* Universities Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredUniversities.length > 0 ? (
-            filteredUniversities.map((university, index) => (
-              <UniversityCard key={university.id} university={university} index={index} />
-            ))
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="col-span-full"
-            >
-              <Card className="bg-card border border-border p-12 text-center">
-                <p className="text-foreground/70 mb-4">No universities found matching your criteria.</p>
-                <Button
-                  variant="outline"
-                  onClick={() => handleFundingFilter(false)}
-                  className="border-primary/30 hover:border-primary/50"
-                >
-                  Clear Filters
-                </Button>
-              </Card>
-            </motion.div>
-          )}
-        </div>
-
-        {/* CTA to Loans */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mt-16 pt-12 border-t border-border"
-        >
-          <Card className="bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/30 p-12 text-center">
-            <h2 className="text-3xl font-bold mb-4">Ready to Fund Your Education?</h2>
-            <p className="text-foreground/70 mb-8 max-w-2xl mx-auto">
-              Explore education loan options and run financial projections to understand your investment.
-            </p>
-            <Button
-              size="lg"
-              onClick={() => router.push('/loans')}
-              className="bg-secondary hover:bg-secondary/90 text-white gap-2 group"
-            >
-              Explore Loans & ROI
-              <span className="group-hover:translate-x-1 transition-transform">→</span>
-            </Button>
-          </Card>
-        </motion.div>
-      </main>
-
-      {/* Chat panel */}
-      {showChat && (
-        <div className="fixed bottom-0 right-0 w-full md:w-96 h-96 md:h-full md:max-h-screen z-50 p-4 md:p-0 md:border-l md:border-border/50 bg-background">
+        {/* Chat Sidebar */}
+        {showChat && (
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            className="h-full"
+            className="fixed right-0 top-[57px] bottom-0 w-full lg:w-[380px] z-30 bg-black border-l border-white/[0.06]"
           >
-            <AIMentorChat
-              studentProfile={studentProfile || undefined}
-              ecpResult={ecpResult}
-              onClose={() => setShowChat(false)}
-            />
+            <AIMentorChat onClose={() => setShowChat(false)} />
           </motion.div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center text-white/40">Loading Dashboard...</div>}>
+      <DashboardContent />
+    </Suspense>
   )
 }

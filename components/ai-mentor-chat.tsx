@@ -1,207 +1,158 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
-import { ChatMessage, StudentProfile, ECPResult } from '@/lib/types'
-import { Send, Loader2, Trash2, MessageCircle } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { useStudent } from '@/lib/student-context'
+import { streamChat } from '@/lib/api'
+import type { ChatMessage } from '@/lib/types'
+import { Send, Loader2, Trash2, Sparkles, X } from 'lucide-react'
 
 interface AIMentorChatProps {
-  studentProfile?: StudentProfile
-  ecpResult?: ECPResult
   onClose?: () => void
 }
 
-export function AIMentorChat({ studentProfile, ecpResult, onClose }: AIMentorChatProps) {
+export function AIMentorChat({ onClose }: AIMentorChatProps) {
+  const { studentId, profile, ecpResult } = useStudent()
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [inputValue, setInputValue] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [input, setInput] = useState('')
+  const [isStreaming, setIsStreaming] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
-
-  // Auto-scroll to bottom
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, [messages])
+  const abortRef = useRef<AbortController | null>(null)
 
   // Initial greeting
   useEffect(() => {
-    const greeting: ChatMessage = {
-      role: 'assistant',
-      content: `Hi! I'm your DISHA AI mentor. I'm here to help you with your international education journey. ${
-        studentProfile
-          ? `I can see you have an ECP score of ${ecpResult?.score}. What would you like to know about universities, funding, or your education path?`
-          : "Tell me about your academic background and I'll help you find the perfect university."
-      }`,
+    if (profile && ecpResult) {
+      setMessages([{
+        role: 'assistant',
+        content: `Hi ${profile.name.split(' ')[0]}! I've reviewed your ECP Score of ${ecpResult.score} and your ₹${ecpResult.fundingBandLower}L–₹${ecpResult.fundingBandUpper}L funding band. I see you're targeting ${profile.targetProgram} programs in ${profile.targetCountry}. What would you like to explore — university options, loan details, or your admission strategy?`
+      }])
+    } else {
+      setMessages([{ role: 'assistant', content: "Hi! Complete your ECP assessment first so I can give you personalized advice about universities and funding." }])
     }
-    setMessages([greeting])
-  }, [])
+  }, [profile, ecpResult])
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim()) return
+  useEffect(() => {
+    scrollRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
 
-    // Add user message
-    const userMessage: ChatMessage = {
-      role: 'user',
-      content: inputValue,
-    }
+  const sendMessage = useCallback(async () => {
+    if (!input.trim() || isStreaming || !studentId) return
 
-    setMessages((prev) => [...prev, userMessage])
-    setInputValue('')
-    setIsLoading(true)
-    setError(null)
+    const userMsg: ChatMessage = { role: 'user', content: input }
+    const updated = [...messages, userMsg]
+    setMessages([...updated, { role: 'assistant', content: '' }])
+    setInput('')
+    setIsStreaming(true)
+
+    abortRef.current = new AbortController()
 
     try {
-      // Call API
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [...messages, userMessage],
-          studentProfile,
-          ecpResult,
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to get response')
-      }
-
-      const data = await response.json()
-      const assistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: data.response,
-      }
-
-      setMessages((prev) => [...prev, assistantMessage])
+      let accumulated = ''
+      await streamChat(
+        studentId,
+        updated,
+        (text) => {
+          accumulated += text
+          setMessages(prev => [...prev.slice(0, -1), { role: 'assistant', content: accumulated }])
+        },
+        undefined,
+        (errMsg) => {
+          setMessages(prev => [...prev.slice(0, -1), { role: 'assistant', content: `I'm having trouble connecting. ${errMsg}` }])
+        },
+        abortRef.current.signal
+      )
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
-      // Add error message to chat
-      const errorMessage: ChatMessage = {
-        role: 'assistant',
-        content:
-          "I'm sorry, I encountered an issue. Please try again or check if your API key is properly configured.",
+      if ((err as Error).name !== 'AbortError') {
+        const fallback = ecpResult
+          ? `Based on your ECP Score of ${ecpResult.score} and funding band of ₹${ecpResult.fundingBandLower}L–₹${ecpResult.fundingBandUpper}L, I'd recommend focusing on programs where total cost stays within your band. Would you like me to detail the loan structure for any specific university?`
+          : "I'm temporarily unavailable. Please try again in a moment."
+        setMessages(prev => [...prev.slice(0, -1), { role: 'assistant', content: fallback }])
       }
-      setMessages((prev) => [...prev, errorMessage])
     } finally {
-      setIsLoading(false)
+      setIsStreaming(false)
     }
-  }
-
-  const handleClearChat = () => {
-    setMessages([
-      {
-        role: 'assistant',
-        content: "Chat cleared. How can I help you with your education journey?",
-      },
-    ])
-  }
+  }, [input, isStreaming, studentId, messages, ecpResult])
 
   return (
-    <Card className="bg-card border border-border flex flex-col h-full max-h-96 md:max-h-full">
+    <Card className="bg-black border border-white/[0.08] flex flex-col h-full">
       {/* Header */}
-      <div className="border-b border-border/30 p-4 flex justify-between items-center bg-muted/20">
+      <div className="border-b border-white/[0.06] p-4 flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <MessageCircle className="w-5 h-5 text-primary" />
-          <h3 className="font-semibold">AI Mentor</h3>
+          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+            <Sparkles className="w-4 h-4 text-white/60" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold">DISHA AI Mentor</h3>
+            <p className="text-[10px] text-green-400/60">● Knows your ECP profile</p>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={handleClearChat}
-            className="hover:bg-muted/50"
-            title="Clear chat"
-          >
-            <Trash2 className="w-4 h-4" />
+        <div className="flex gap-1">
+          <Button size="icon" variant="ghost" onClick={() => setMessages([messages[0]])} className="w-7 h-7 hover:bg-white/5">
+            <Trash2 className="w-3.5 h-3.5 text-white/40" />
           </Button>
           {onClose && (
-            <Button size="sm" variant="ghost" onClick={onClose} className="hover:bg-muted/50">
-              ✕
+            <Button size="icon" variant="ghost" onClick={onClose} className="w-7 h-7 hover:bg-white/5">
+              <X className="w-3.5 h-3.5 text-white/40" />
             </Button>
           )}
         </div>
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4 space-y-4 overflow-y-auto">
-        <div className="space-y-4" ref={scrollRef}>
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-3">
           <AnimatePresence mode="popLayout">
-            {messages.map((message, index) => (
+            {messages.map((msg, i) => (
               <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 10 }}
+                key={i}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div
-                  className={`max-w-xs px-4 py-2 rounded-lg ${
-                    message.role === 'user'
-                      ? 'bg-primary/20 border border-primary/30 text-foreground'
-                      : 'bg-muted/30 border border-muted/50 text-foreground/90'
-                  }`}
-                >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                  msg.role === 'user'
+                    ? 'bg-white text-black rounded-br-sm'
+                    : 'bg-white/[0.05] text-white/90 border border-white/[0.06] rounded-bl-sm'
+                }`}>
+                  {msg.content || <span className="text-white/30 animate-pulse">●●●</span>}
                 </div>
               </motion.div>
             ))}
           </AnimatePresence>
-
-          {isLoading && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex justify-start"
-            >
-              <div className="bg-muted/30 border border-muted/50 px-4 py-2 rounded-lg flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                <span className="text-sm text-foreground/60">Thinking...</span>
+          {isStreaming && messages[messages.length - 1]?.content === '' && (
+            <div className="flex justify-start">
+              <div className="bg-white/[0.05] border border-white/[0.06] rounded-2xl rounded-bl-sm px-4 py-2.5 flex items-center gap-2">
+                <Loader2 className="w-3 h-3 animate-spin text-white/40" />
+                <span className="text-xs text-white/40">Thinking...</span>
               </div>
-            </motion.div>
+            </div>
           )}
-
-          {error && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="bg-destructive/10 border border-destructive/30 text-destructive text-sm p-3 rounded-lg"
-            >
-              {error}
-            </motion.div>
-          )}
+          <div ref={scrollRef} />
         </div>
       </ScrollArea>
 
       {/* Input */}
-      <div className="border-t border-border/30 p-4 bg-muted/10">
+      <div className="border-t border-white/[0.06] p-3">
         <div className="flex gap-2">
           <Input
-            placeholder="Ask me anything..."
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                handleSendMessage()
-              }
-            }}
-            disabled={isLoading}
-            className="bg-input border-border/50 text-foreground placeholder:text-foreground/50"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+            placeholder={studentId ? "Ask about loans, universities, or your admission..." : "Complete ECP first..."}
+            disabled={isStreaming || !studentId}
+            className="bg-white/[0.03] border-white/[0.08] text-white text-sm placeholder:text-white/25 focus:border-white/20"
           />
           <Button
-            size="sm"
-            onClick={handleSendMessage}
-            disabled={isLoading || !inputValue.trim()}
-            className="bg-primary hover:bg-primary/90"
+            size="icon"
+            onClick={sendMessage}
+            disabled={isStreaming || !input.trim() || !studentId}
+            className="bg-white text-black hover:bg-white/90 shrink-0"
           >
-            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </Button>
         </div>
       </div>
