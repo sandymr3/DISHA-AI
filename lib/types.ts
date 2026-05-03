@@ -65,6 +65,7 @@ export interface University {
   postStudySalaryUSD: number;
   roiYears: number;
   admitProbability: Record<string, number>;
+  scrapedAt?: string;
 }
 
 export interface MatchedUniversity extends University {
