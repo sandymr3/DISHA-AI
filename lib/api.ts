@@ -1,4 +1,5 @@
 // DISHA AI — Backend API Client
+import { auth } from './firebase';
 import type {
   StudentProfile, ECPResult, MatchedUniversity, LoanOffer,
   EMIResult, ROIResult, FundingPassport, DreamGapResult,
@@ -8,10 +9,19 @@ import type {
 
 const API_BASE = '/api/v1';
 
+/** Returns Authorization header with fresh Firebase ID token, or empty object if not signed in. */
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const user = auth.currentUser;
+  if (!user) return {};
+  const token = await user.getIdToken();
+  return { Authorization: `Bearer ${token}` };
+}
+
 async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
+  const authHeaders = await getAuthHeaders();
   const res = await fetch(url, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
+    headers: { 'Content-Type': 'application/json', ...authHeaders, ...(init?.headers || {}) },
   });
   if (!res.ok) {
     const errorBody = await res.json().catch(() => ({}));
@@ -21,6 +31,7 @@ async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
   if (!body.success) throw new Error(body.error?.message || 'Unknown API error');
   return body.data;
 }
+
 
 export async function createStudent(profile: StudentProfile): Promise<{ studentId: string; ecpResult: ECPResult }> {
   return fetchJSON(`${API_BASE}/students`, { method: 'POST', body: JSON.stringify(profile) });
@@ -76,8 +87,10 @@ export async function streamChat(
   onError?: (message: string) => void,
   signal?: AbortSignal
 ): Promise<void> {
+  const authHeaders = await getAuthHeaders();
   const res = await fetch(`${API_BASE}/chat`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders },
     body: JSON.stringify({ studentId, messages }), signal,
   });
   if (!res.ok) {

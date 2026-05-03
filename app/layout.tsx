@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Analytics } from '@vercel/analytics/next'
+import { AuthProvider } from '@/lib/auth-context'
 import { StudentProvider } from '@/lib/student-context'
 import './globals.css'
 
@@ -24,9 +25,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="bg-black">
       <body className="font-sans antialiased bg-black text-white min-h-screen">
-        <StudentProvider>
-          {children}
-        </StudentProvider>
+        <AuthProvider>
+          <StudentProvider>
+            {children}
+          </StudentProvider>
+        </AuthProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

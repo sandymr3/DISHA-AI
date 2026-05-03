@@ -16,21 +16,28 @@ import { DreamGap } from '@/components/dream-gap'
 import { ECPSimulator } from '@/components/ecp-simulator'
 import { UniversityDatabase } from '@/components/university-database'
 import { DynamicSearchBar } from '@/components/search-bar'
+import { AuthGuard } from '@/components/auth-guard'
 import { useStudent } from '@/lib/student-context'
+import { useAuth } from '@/lib/auth-context'
 import { matchUniversities, getLoanOffers } from '@/lib/api'
 import type { MatchedUniversity, LoanOffer } from '@/lib/types'
-import { GraduationCap, DollarSign, TrendingUp, MessageCircle, X, Sparkles, Download, Target, SlidersHorizontal, Database } from 'lucide-react'
+import {
+  GraduationCap, DollarSign, TrendingUp, MessageCircle, X,
+  Download, Target, SlidersHorizontal, Database, LogOut, User,
+} from 'lucide-react'
 
 function DashboardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { studentId, profile, ecpResult } = useStudent()
+  const { user, signOut } = useAuth()
   const [universities, setUniversities] = useState<MatchedUniversity[]>([])
   const [loanOffers, setLoanOffers] = useState<LoanOffer[]>([])
   const [loansUnlocked, setLoansUnlocked] = useState(false)
   const [showChat, setShowChat] = useState(false)
   const [loading, setLoading] = useState(true)
   const [selectedUni, setSelectedUni] = useState<MatchedUniversity | null>(null)
+  const [showUserMenu, setShowUserMenu] = useState(false)
   const defaultTab = searchParams.get('tab') || 'universities'
 
   useEffect(() => {
@@ -48,6 +55,11 @@ function DashboardContent() {
     })
   }, [studentId, ecpResult])
 
+  const handleSignOut = async () => {
+    await signOut()
+    router.push('/')
+  }
+
   if (!studentId || !ecpResult || !profile) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -63,6 +75,8 @@ function DashboardContent() {
   }
 
   const safeUniversities = universities || []
+  const displayName = profile.name.split(' ')[0] || user?.displayName?.split(' ')[0] || 'You'
+  const avatarLetter = displayName.charAt(0).toUpperCase()
 
   return (
     <div className="min-h-screen bg-black">
@@ -78,10 +92,48 @@ function DashboardContent() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-white/40 hidden md:block">Hi, {profile.name.split(' ')[0]}</span>
-            <Button size="icon" onClick={() => setShowChat(!showChat)} className={`${showChat ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'} transition-all`}>
+            <span className="text-sm text-white/40 hidden md:block">Hi, {displayName}</span>
+            <Button
+              size="icon"
+              onClick={() => setShowChat(!showChat)}
+              className={`${showChat ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'} transition-all`}
+            >
               {showChat ? <X className="w-4 h-4" /> : <MessageCircle className="w-4 h-4" />}
             </Button>
+            {/* User menu */}
+            <div className="relative">
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="w-8 h-8 rounded-full bg-white/10 border border-white/[0.12] flex items-center justify-center text-xs font-bold hover:bg-white/20 transition-colors"
+              >
+                {user?.photoURL ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={user.photoURL} alt="avatar" className="w-full h-full rounded-full object-cover" />
+                ) : (
+                  <span>{avatarLetter}</span>
+                )}
+              </button>
+              {showUserMenu && (
+                <div className="absolute right-0 top-10 w-48 bg-black border border-white/[0.1] rounded-xl shadow-2xl z-50 overflow-hidden">
+                  <div className="px-3 py-2.5 border-b border-white/[0.06]">
+                    <p className="text-xs font-medium text-white truncate">{displayName}</p>
+                    <p className="text-[11px] text-white/30 truncate">{user?.email}</p>
+                  </div>
+                  <button
+                    onClick={() => { setShowUserMenu(false); router.push('/calculator') }}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-xs text-white/60 hover:text-white hover:bg-white/[0.04] transition-colors"
+                  >
+                    <User className="w-3.5 h-3.5" /> Retake Assessment
+                  </button>
+                  <button
+                    onClick={() => { setShowUserMenu(false); handleSignOut() }}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-xs text-red-400/80 hover:text-red-400 hover:bg-red-500/[0.05] transition-colors"
+                  >
+                    <LogOut className="w-3.5 h-3.5" /> Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -120,12 +172,11 @@ function DashboardContent() {
 
                 <div className="pb-4">
                   <DynamicSearchBar onSelect={(uni) => {
-                    // Prepend new generated university to top of the list if it doesn't exist
                     setUniversities(prev => {
-                      if (prev.find(u => u.id === uni.id)) return prev;
-                      return [uni, ...prev];
-                    });
-                    setSelectedUni(uni);
+                      if (prev.find(u => u.id === uni.id)) return prev
+                      return [uni, ...prev]
+                    })
+                    setSelectedUni(uni)
                   }} />
                 </div>
 
@@ -243,8 +294,10 @@ function DashboardContent() {
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center text-white/40">Loading Dashboard...</div>}>
-      <DashboardContent />
-    </Suspense>
+    <AuthGuard>
+      <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center text-white/40">Loading Dashboard...</div>}>
+        <DashboardContent />
+      </Suspense>
+    </AuthGuard>
   )
 }

@@ -8,7 +8,9 @@ import { Slider } from '@/components/ui/slider'
 import { Input } from '@/components/ui/input'
 import { useRouter } from 'next/navigation'
 import { useStudent } from '@/lib/student-context'
-import { createStudent } from '@/lib/api'
+import { useAuth } from '@/lib/auth-context'
+import { createStudent, updateStudent } from '@/lib/api'
+import { auth } from '@/lib/firebase'
 import type { StudentProfile, IncomeBand, Country, ProgramType, IntakePeriod } from '@/lib/types'
 import { ChevronLeft, ChevronRight, Zap, Loader2, Globe, GraduationCap, DollarSign, Users, Calendar } from 'lucide-react'
 
@@ -57,6 +59,7 @@ const STEPS = [
 export function ECPCalculator() {
   const router = useRouter()
   const { setStudent } = useStudent()
+  const { user } = useAuth()
   const [step, setStep] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -107,6 +110,7 @@ export function ECPCalculator() {
 
     try {
       const result = await createStudent(profile)
+      // Use the studentId returned by backend (will be Firebase UID on authenticated requests)
       setStudent(result.studentId, profile, result.ecpResult)
       router.push('/score')
     } catch (err) {

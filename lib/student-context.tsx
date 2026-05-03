@@ -2,6 +2,9 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import type { StudentProfile, ECPResult } from './types';
+import { getStudent } from './api';
+import { auth } from './firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 interface StudentState {
   studentId: string | null;
@@ -27,8 +30,8 @@ export function StudentProvider({ children }: { children: ReactNode }) {
   });
   const [isReady, setIsReady] = useState(false);
 
-  // Load from localStorage on mount
   useEffect(() => {
+    // First try loading from localStorage (fast path)
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -40,7 +43,32 @@ export function StudentProvider({ children }: { children: ReactNode }) {
     } catch {
       // Ignore corrupted data
     }
-    setIsReady(true);
+
+    // Then sync with backend when Firebase auth resolves
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Use Firebase UID as canonical studentId
+        try {
+          const record = await getStudent(user.uid);
+          const newState: StudentState = {
+            studentId: record.studentId,
+            profile: record.profile,
+            ecpResult: record.ecpResult,
+          };
+          setState(newState);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
+        } catch {
+          // Profile not yet created — that's fine, user will go through calculator
+        }
+      } else {
+        // Signed out — clear student state
+        setState({ studentId: null, profile: null, ecpResult: null });
+        try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+      }
+      setIsReady(true);
+    });
+
+    return unsubscribe;
   }, []);
 
   const setStudent = useCallback(

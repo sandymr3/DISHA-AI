@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Gauge, GraduationCap, DollarSign, TrendingUp, MessageCircle, Download } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { useAuth } from '@/lib/auth-context'
+import { useStudent } from '@/lib/student-context'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -28,6 +30,16 @@ const FEATURES = [
 
 export default function LandingPage() {
   const router = useRouter()
+  const { user, loading } = useAuth()
+  const { studentId } = useStudent()
+
+  const handlePrimary = () => {
+    if (user) {
+      router.push(studentId ? '/dashboard' : '/calculator')
+    } else {
+      router.push('/auth')
+    }
+  }
 
   return (
     <div className="min-h-screen bg-black overflow-hidden relative">
@@ -46,13 +58,24 @@ export default function LandingPage() {
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="text-xl font-bold text-gradient-white tracking-tight">
             DISHA AI
           </motion.div>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="flex items-center gap-2">
+            {!loading && !user && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => router.push('/auth')}
+                className="text-white/60 hover:text-white text-xs"
+              >
+                Sign In
+              </Button>
+            )}
             <Button
               size="sm"
-              onClick={() => router.push('/calculator')}
+              onClick={handlePrimary}
               className="bg-white text-black hover:bg-white/90 text-xs font-semibold gap-1.5"
             >
-              Get My ECP Score <ArrowRight className="w-3 h-3" />
+              {loading ? '...' : user ? (studentId ? 'Dashboard' : 'Get ECP Score') : 'Get Started'}
+              <ArrowRight className="w-3 h-3" />
             </Button>
           </motion.div>
         </div>
@@ -87,10 +110,10 @@ export default function LandingPage() {
           <motion.div custom={3} variants={fadeUp} initial="hidden" animate="visible" className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button
               size="lg"
-              onClick={() => router.push('/calculator')}
+              onClick={handlePrimary}
               className="bg-white text-black hover:bg-white/90 font-semibold gap-2 h-14 px-8 text-base group"
             >
-              Get My ECP Score
+              {user ? 'Go to Dashboard' : 'Get My ECP Score'}
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Button>
             <Button
@@ -209,10 +232,10 @@ export default function LandingPage() {
           </p>
           <Button
             size="lg"
-            onClick={() => router.push('/calculator')}
+            onClick={handlePrimary}
             className="bg-white text-black hover:bg-white/90 font-semibold gap-2 h-14 px-10 text-base group"
           >
-            Start My ECP Assessment
+            {user ? 'Go to Dashboard' : 'Start My ECP Assessment'}
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Button>
         </motion.div>

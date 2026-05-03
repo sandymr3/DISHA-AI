@@ -3,13 +3,16 @@
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useStudent } from '@/lib/student-context'
+import { useAuth } from '@/lib/auth-context'
+import { AuthGuard } from '@/components/auth-guard'
 import { AnimatedGauge } from '@/components/animated-gauge'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Download, TrendingUp, BookOpen, Lightbulb } from 'lucide-react'
+import { ArrowRight, Download, TrendingUp, Lightbulb } from 'lucide-react'
 
-export default function ScoreRevealPage() {
+function ScoreContent() {
   const router = useRouter()
   const { ecpResult, profile } = useStudent()
+  const { user } = useAuth()
 
   if (!ecpResult || !profile) {
     return (
@@ -25,6 +28,7 @@ export default function ScoreRevealPage() {
   }
 
   const { score, tier, fundingBandLower, fundingBandUpper, subScores, improvementTips } = ecpResult
+  const displayName = profile.name.split(' ')[0] || user?.displayName?.split(' ')[0] || 'There'
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
@@ -42,7 +46,7 @@ export default function ScoreRevealPage() {
         >
           <p className="text-white/40 text-sm uppercase tracking-[0.3em] mb-2">Your results are in</p>
           <h1 className="text-3xl md:text-4xl font-bold">
-            {profile.name.split(' ')[0]}, here&apos;s your <span className="text-gradient-white">ECP Score</span>
+            {displayName}, here&apos;s your <span className="text-gradient-white">ECP Score</span>
           </h1>
         </motion.div>
 
@@ -142,5 +146,13 @@ export default function ScoreRevealPage() {
         </motion.div>
       </div>
     </div>
+  )
+}
+
+export default function ScoreRevealPage() {
+  return (
+    <AuthGuard>
+      <ScoreContent />
+    </AuthGuard>
   )
 }
